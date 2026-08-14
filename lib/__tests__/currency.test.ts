@@ -1,0 +1,156 @@
+import { describe, expect, it } from "vitest";
+import {
+  convert,
+  formatCurrency,
+  formatMoneyDisplay,
+  getCurrencyInfo,
+  getLatestRate,
+  getRate,
+  getTodayRate,
+  parseMoneyInput,
+  type ExchangeRate,
+} from "@/lib/currency";
+
+function rate(partial: Partial<ExchangeRate>): ExchangeRate {
+  return { baseCurrency: "COP", targetCurrency: "USD", rate: 1, source: "auto", date: "2026-01-10", fetchedAt: "", ...partial };
+}
+
+describe("convert", () => {
+  it("devuelve el mismo monto si from === to", () => {
+    expect(convert(100, "COP", "COP", 4000)).toBe(100);
+  });
+
+  it("convierte monto por la tasa", () => {
+    expect(convert(100, "USD", "COP", 4000)).toBe(400000);
+  });
+
+  it("redondea a 2 decimales", () => {
+    expect(convert(33.33, "USD", "COP", 4000.5)).toBe(133336.66);
+  });
+
+  it("maneja monto 0", () => {
+    expect(convert(0, "USD", "COP", 4000)).toBe(0);
+  });
+});
+
+describe("getRate: prioridad manual > auto día > último conocido > 1.0", () => {
+  const base = "COP";
+  const manual: ExchangeRate[] = [
+    rate({ targetCurrency: "USD", rate: 3900, source: "manual", date: "2026-01-10" }),
+  ];
+  const auto: ExchangeRate[] = [
+    rate({ targetCurrency: "USD", rate: 4100, source: "auto", date: "2026-01-10" }),
+    rate({ targetCurrency: "USD", rate: 4050, source: "auto", date: "2026-01-09" }),
+    rate({ targetCurrency: "USD", rate: 4000, source: "auto", date: "2026-01-01" }),
+  ];
+
+  it("prioriza la tasa manual del día", () => {
+    expect(getRate(base, "USD", "2026-01-10", manual, auto)).toBe(3900);
+  });
+
+  it("usa la automática del día si no hay manual", () => {
+    expect(getRate(base, "USD", "2026-01-10", [], auto)).toBe(4100);
+  });
+
+  it("usa la última automática conocida si no hay del día", () => {
+    expect(getRate(base, "USD", "2026-01-11", [], auto)).toBe(4100);
+    expect(getRate(base, "USD", "2026-01-09", [], auto)).toBe(4050);
+  });
+
+  it("cae a 1.0 si no hay ninguna tasa", () => {
+    expect(getRate(base, "EUR", "2026-01-10", [], [])).toBe(1.0);
+  });
+});
+
+describe("getLatestRate / getTodayRate", () => {
+  const rates = [
+    rate({ targetCurrency: "USD", rate: 4000, source: "auto", date: "2026-01-01" }),
+    rate({ targetCurrency: "USD", rate: 4050, source: "auto", date: "2026-01-09" }),
+    rate({ targetCurrency: "USD", rate: 4100, source: "auto", date: "2026-01-10" }),
+    rate({ targetCurrency: "USD", rate: 3999, source: "manual", date: "2026-01-10" }),
+  ];
+
+  it("getLatestRate prioriza manual del día", () => {
+    expect(getLatestRate(rates, "USD", "2026-01-10")).toBe(3999);
+  });
+
+  it("getLatestRate usa la más reciente <= fecha sin manual", () => {
+    expect(getLatestRate(rates.filter((r) => r.source !== "manual"), "USD", "2026-01-11")).toBe(4100);
+  });
+
+  it("getLatestRate devuelve undefined si no hay tasa", () => {
+    expect(getLatestRate(rates, "EUR", "2026-01-10")).toBeUndefined();
+  });
+
+  it("getTodayRate devuelve la fila manual del día", () => {
+    const r = getTodayRate(rates, "USD", "2026-01-10");
+    expect(r?.source).toBe("manual");
+    expect(r?.rate).toBe(3999);
+  });
+});
+
+describe("formatCurrency (DoD: COP $1.000, USD $1,000.00, EUR 1.000,00 €)", () => {
+  it("formatea COP en es-CO", () => {
+    expect(formatCurrency(1000, "COP")).toMatch(/1\.000/);
+    expect(formatCurrency(1000, "COP")).toMatch(/\$/);
+  });
+
+  it("formatea USD con dos decimales", () => {
+    expect(formatCurrency(1000, "USD")).toMatch(/1,000\.00/);
+  });
+
+  it("formatea EUR con formato alemán", () => {
+    expect(formatCurrency(1000, "EUR")).toMatch(/1\.000,00/);
+    expect(formatCurrency(1000, "EUR")).toContain("€");
+  });
+
+  it("muestra decimales solo cuando existen en COP", () => {
+    expect(formatCurrency(1000, "COP")).not.toMatch(/,00/);
+    expect(formatCurrency(1000.5, "COP")).toMatch(/1\.000,5/);
+  });
+
+  it("usa el locale es-CO si se pasa explícito", () => {
+    expect(formatCurrency(1000, "USD", "es-CO")).not.toBe(formatCurrency(1000, "USD"));
+  });
+
+  it("no falla con moneda desconocida", () => {
+    expect(() => formatCurrency(5, "XYZ")).not.toThrow();
+  });
+});
+
+describe("formatMoneyDisplay / parseMoneyInput (es-CO)", () => {
+  it("formatea miles", () => {
+    expect(formatMoneyDisplay("50000")).toBe("50.000");
+  });
+
+  it("formatea decimales con coma", () => {
+    expect(formatMoneyDisplay("50000,5")).toBe("50.000,5");
+    expect(formatMoneyDisplay("50000,50")).toBe("50.000,50");
+  });
+
+  it("parsea formato es-CO", () => {
+    expect(parseMoneyInput("50.000,50")).toBe(50000.5);
+  });
+
+  it("parsea sin formato", () => {
+    expect(parseMoneyInput("1234")).toBe(1234);
+  });
+
+  it("devuelve 0 para valores inválidos", () => {
+    expect(parseMoneyInput("")).toBe(0);
+    expect(parseMoneyInput("abc")).toBe(0);
+  });
+});
+
+describe("getCurrencyInfo", () => {
+  it("devuelve info de moneda soportada", () => {
+    expect(getCurrencyInfo("COP").name).toBe("Peso Colombiano");
+    expect(getCurrencyInfo("EUR").symbol).toBe("€");
+  });
+
+  it("devuelve fallback para moneda desconocida", () => {
+    const info = getCurrencyInfo("ZZZ");
+    expect(info.code).toBe("ZZZ");
+    expect(info.locale).toBe("es-CO");
+  });
+});
