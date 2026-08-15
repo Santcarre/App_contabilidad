@@ -110,7 +110,7 @@ function ReportesContent() {
         <div>
           <h1 className="text-2xl font-bold">Reportes</h1>
           <p className="text-muted-foreground">Visualiza y analiza tus finanzas</p>        </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => navigateMonth("prev")}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -148,7 +148,7 @@ function ReportesContent() {
 
       {report && !isLoading && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
+          <TabsList className="w-full h-auto flex-wrap sm:w-auto sm:h-10 sm:flex-nowrap">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="fuentes">Medio de Pago</TabsTrigger>

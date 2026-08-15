@@ -37,8 +37,10 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await loginAs(page);
     await mockApi(page);
     await page.goto("/dashboard/transacciones");
-    await expect(page.getByText("Supermercado")).toBeVisible();
-    await expect(page.getByText("Nómina")).toBeVisible();
+    // Scoped a la tabla: el card list móvil también contiene esos textos (oculto en desktop)
+    const table = page.locator("table");
+    await expect(table.getByText("Supermercado")).toBeVisible();
+    await expect(table.getByText("Nómina")).toBeVisible();
     await expect(page.getByText("2 transacciones")).toBeVisible();
   });
 

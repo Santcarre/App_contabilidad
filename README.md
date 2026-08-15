@@ -209,10 +209,10 @@ Hoja global **Usuarios** (Service Account): email, tokens encriptados, spreadshe
 
 ## Roadmap / Pendiente
 
-- **Adaptación móvil**: el dashboard actual está pensado para desktop; falta pulir el layout responsive (sidebar colapsable, tablas → cards, formularios apilados) — pendiente de un sprint de diseño móvil.
 - **Drag & drop** para reordenar categorías/fuentes.
 - **Sentry** (monitoreo de errores) y **analytics** (opcional).
 - **Custom domain** en Vercel (opcional).
+- **Deploy a Vercel** (pendiente hasta validar el Sprint de móvil en el dispositivo real).
 
 ## Testing
 

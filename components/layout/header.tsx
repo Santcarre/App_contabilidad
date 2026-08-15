@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, Loader2, Users } from "lucide-react";
+import { LogOut, Loader2, Menu, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ThemeToggle } from "./theme-toggle";
@@ -22,7 +22,7 @@ interface KnownUser {
   picture: string;
 }
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { data: session } = useSession();
   const [knownUsers, setKnownUsers] = useState<KnownUser[]>([]);
   const [switching, setSwitching] = useState<string | null>(null);
@@ -57,13 +57,23 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
-      <div className="flex h-full items-center justify-between px-4 lg:px-6 ml-64 transition-all duration-200">
-        <div className="flex-1" />
-        <div className="flex items-center gap-4">
+      <div className="flex h-full items-center justify-between px-4 lg:px-6 lg:ml-64 transition-all duration-200">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            className="lg:hidden h-11 w-11"
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button variant="ghost" className="relative h-11 w-11 rounded-full" aria-label="Menú de usuario">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
                   <AvatarFallback>{session?.user?.name?.[0] || "U"}</AvatarFallback>

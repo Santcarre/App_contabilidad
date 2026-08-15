@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
 import { Combobox } from "@/components/ui/combobox";
 import { MoneyInput, parseMoneyInput } from "@/components/ui/money-input";
 import { Switch } from "@/components/ui/switch";
@@ -144,12 +145,12 @@ export default function RecurrentesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Gastos Recurrentes</h1>
           <p className="text-muted-foreground">Plantillas que se generan automáticamente cada mes</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => generateRecurrents.mutate()} disabled={generateRecurrents.isPending}>
             {generateRecurrents.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -310,6 +311,60 @@ export default function RecurrentesPage() {
               Error al cargar las recurrencias. Intenta de nuevo.
             </div>
           ) : (
+            <>
+            {/* Móvil: cards apiladas */}
+            <MobileList>
+              {(recurrents ?? []).length === 0 ? (
+                <li className="text-center py-8 text-muted-foreground">
+                  No hay recurrencias. Crea tu primera plantilla.
+                </li>
+              ) : (
+                (recurrents ?? []).map((rec) => (
+                  <MobileCard key={rec.id}>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium truncate">
+                          {rec.type === "gasto" ? "Gasto" : "Ingreso"} recurrente
+                        </p>
+                        <span className={rec.active ? "text-green-600 text-xs" : "text-gray-400 text-xs"}>
+                          {rec.active ? "Activa" : "Pausada"}
+                        </span>
+                      </div>
+                      <p className="font-mono tabular-nums font-medium">
+                        {formatCurrency(rec.amountOriginal, rec.currencyOriginal)}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {[rec.categoryName, rec.sourceName].filter(Boolean).join(" · ")}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Día {rec.dayOfMonth} de cada mes · Próxima:{" "}
+                        {format(new Date(rec.nextGeneration + "T00:00:00"), "dd/MM/yyyy", { locale: es })}
+                      </p>
+                      {rec.note && <p className="text-sm text-muted-foreground truncate">{rec.note}</p>}
+                    </div>
+                    <MobileActions>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-11 w-11 ${rec.active ? "text-green-600" : "text-gray-400"}`}
+                        onClick={() => handleToggle(rec.id, !rec.active)}
+                        aria-label={rec.active ? "Pausar recurrencia" : "Activar recurrencia"}
+                      >
+                        {rec.active ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEditDialog(rec)} aria-label="Editar recurrencia">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleDelete(rec.id)} aria-label="Eliminar recurrencia">
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </MobileActions>
+                  </MobileCard>
+                ))
+              )}
+            </MobileList>
+
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -388,6 +443,8 @@ export default function RecurrentesPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

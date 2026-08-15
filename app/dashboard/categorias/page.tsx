@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
@@ -117,6 +118,50 @@ export default function CategoriasPage() {
 
       <Card>
         <CardContent className="pt-0">
+          {/* Móvil: cards apiladas */}
+          <MobileList>
+            {isLoading ? (
+              <li className="text-center py-8 text-muted-foreground">Cargando categorías...</li>
+            ) : categories?.length === 0 ? (
+              <li className="text-center py-8 text-muted-foreground">
+                No hay categorías. Crea tu primera categoría.
+              </li>
+            ) : (
+              categories?.map((cat) => (
+                <MobileCard key={cat.id}>
+                  <div className="min-w-0 flex-1 flex items-center gap-3">
+                    <CategoryIcon name={cat.icon} color={cat.color} />
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-medium truncate">{cat.name}</p>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            cat.type === "gasto" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {cat.type === "gasto" ? "Gasto" : "Ingreso"}
+                        </span>
+                        <div className="w-4 h-4 rounded" style={{ backgroundColor: getColorValue(cat.color) }} />
+                        <span className={cat.active ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+                          {cat.active ? "Activa" : "Inactiva"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <MobileActions>
+                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEditDialog(cat)} aria-label="Editar categoría">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleDelete(cat.id)} aria-label="Eliminar categoría">
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </MobileActions>
+                </MobileCard>
+              ))
+            )}
+          </MobileList>
+
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -174,6 +219,7 @@ export default function CategoriasPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

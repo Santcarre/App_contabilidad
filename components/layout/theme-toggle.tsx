@@ -11,7 +11,7 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-10 w-10">
+        <Button variant="ghost" size="icon" className="h-11 w-11">
           {resolvedTheme === "dark" ? (
             <Moon className="h-5 w-5" />
           ) : (

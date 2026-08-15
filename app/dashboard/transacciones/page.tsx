@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
 import { Plus, ChevronDown, ChevronUp, Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -144,7 +145,62 @@ export default function TransaccionesPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Móvil: cards apiladas */}
+            <MobileList>
+              {isLoading ? (
+                <li className="text-center py-8 text-muted-foreground">Cargando transacciones...</li>
+              ) : sortedTransactions.length === 0 ? (
+                <li className="text-center py-8 text-muted-foreground">
+                  {isFetching ? "Actualizando..." : "No hay transacciones para mostrar"}
+                </li>
+              ) : (
+                sortedTransactions.map((tx) => (
+                  <MobileCard key={tx.id}>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(tx.date), "dd/MM/yyyy", { locale: es })}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            tx.type === "gasto" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {tx.type === "gasto" ? "Gasto" : "Ingreso"}
+                        </span>
+                      </div>
+                      <p className="font-mono tabular-nums font-medium">
+                        {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
+                        {tx.currencyOriginal !== tx.currencyBase && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatCurrency(tx.amountBase, tx.currencyBase)})
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {[tx.categoryName, tx.sourceName].filter(Boolean).join(" · ")}
+                      </p>
+                      {tx.note && <p className="text-sm text-muted-foreground truncate">{tx.note}</p>}
+                    </div>
+                    <MobileActions>
+                      <Link
+                        href={`/dashboard/transacciones/${tx.id}/editar`}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-sm text-primary hover:bg-accent"
+                        aria-label="Editar transacción"
+                      >
+                        Editar
+                      </Link>
+                      <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleDelete(tx.id)} aria-label="Eliminar transacción">
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </MobileActions>
+                  </MobileCard>
+                ))
+              )}
+            </MobileList>
+
+            {/* Desktop: tabla */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

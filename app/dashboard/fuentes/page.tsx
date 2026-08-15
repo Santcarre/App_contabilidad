@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
@@ -135,6 +136,48 @@ export default function FuentesPage() {
 
       <Card>
         <CardContent className="pt-0">
+          {/* Móvil: cards apiladas */}
+          <MobileList>
+            {isLoading ? (
+              <li className="text-center py-8 text-muted-foreground">Cargando fuentes...</li>
+            ) : sources?.length === 0 ? (
+              <li className="text-center py-8 text-muted-foreground">
+                No hay medios de pago. Crea el primero.
+              </li>
+            ) : (
+              sources?.map((src) => (
+                <MobileCard key={src.id}>
+                  <div className="min-w-0 flex-1 flex items-center gap-3">
+                    <CategoryIcon name={src.icon} color={src.color} />
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="font-medium truncate">{src.name}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800">
+                          {src.type.charAt(0).toUpperCase() + src.type.slice(1)}
+                        </span>
+                        <span className={src.active ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+                          {src.active ? "Activa" : "Inactiva"}
+                        </span>
+                      </div>
+                      <p className="font-mono tabular-nums text-sm">
+                        {formatCurrency(src.initialBalance, currencyBase)}
+                      </p>
+                    </div>
+                  </div>
+                  <MobileActions>
+                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => openEditDialog(src)} aria-label="Editar medio de pago">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-11 w-11" onClick={() => handleDelete(src.id)} aria-label="Eliminar medio de pago">
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </MobileActions>
+                </MobileCard>
+              ))
+            )}
+          </MobileList>
+
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -194,6 +237,7 @@ export default function FuentesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
