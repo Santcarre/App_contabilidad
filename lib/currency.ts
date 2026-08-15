@@ -57,9 +57,21 @@ export interface RateRow {
 }
 
 /**
+ * Google Sheets con locale es-CO guarda los números como texto con
+ * decimales de coma ("3628,87413") → parseFloat truncaba a 3628.
+ * Normaliza puntos de miles y coma decimal antes de parsear.
+ */
+export function parseStoredRate(v: string | number | undefined | null): number {
+  if (v === undefined || v === null || v === "") return NaN;
+  if (typeof v === "number") return v;
+  return parseFloat(String(v).trim().replace(/\./g, "").replace(",", "."));
+}
+
+/**
  * Tasa de COP por 1 unidad de `target` para una fecha: manual del día >
- * auto del día > auto más reciente (≤ fecha). Las filas almacenadas son
- * siempre "COP por unidad de target", aunque la columna base diga otra cosa.
+ * auto del día > auto más reciente (≤ fecha) > auto más reciente (cualquier
+ * fecha, para que transacciones antiguas sin tasa del día sigan convirtiendo
+ * en vez de quedarse con el monto de su moneda original).
  */
 export function rateForTarget(rows: RateRow[], target: string, date: string): number | undefined {
   const dayManual = rows.find((r) => r.targetCurrency === target && r.date === date && r.source === "manual");
@@ -69,7 +81,10 @@ export function rateForTarget(rows: RateRow[], target: string, date: string): nu
   const recent = rows
     .filter((r) => r.targetCurrency === target && r.source === "auto" && r.date <= date)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
-  return recent?.rate;
+  if (recent) return recent.rate;
+  return rows
+    .filter((r) => r.targetCurrency === target && r.source === "auto")
+    .sort((a, b) => b.date.localeCompare(a.date))[0]?.rate;
 }
 
 /**

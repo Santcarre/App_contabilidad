@@ -1,7 +1,7 @@
 import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { transactionSchema } from "@/lib/validation";
-import { getRate, convertAmountToBase } from "@/lib/currency";
+import { getRate, convertAmountToBase, parseStoredRate } from "@/lib/currency";
 import { ExchangeRate } from "@/lib/currency";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
         const rateRows = ratesRes.slice(1).filter((r) => r[0]).map((r) => ({
           baseCurrency: r[0],
           targetCurrency: r[1],
-          rate: parseFloat(r[2]),
+          rate: parseStoredRate(r[2]),
           source: r[3] === "manual" ? ("manual" as const) : ("auto" as const),
           date: r[4],
           fetchedAt: r[5],

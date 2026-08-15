@@ -2,7 +2,7 @@ import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { budgetSchema } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
-import { convertAmountToBase, type RateRow } from "@/lib/currency";
+import { convertAmountToBase, parseStoredRate, type RateRow } from "@/lib/currency";
 
 async function getBudgets(sheets: SheetsClient): Promise<any[]> {
   const res = await sheets.getRows("Presupuestos!A:H");
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       .map((r) => ({
         baseCurrency: r[0],
         targetCurrency: r[1],
-        rate: parseFloat(r[2]),
+        rate: parseStoredRate(r[2]),
         source: r[3] === "manual" ? "manual" : "auto",
         date: r[4],
         fetchedAt: r[5],

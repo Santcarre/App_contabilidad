@@ -10,6 +10,7 @@ import {
   getRate,
   getTodayRate,
   parseMoneyInput,
+  parseStoredRate,
   rateForTarget,
   type ExchangeRate,
   type RateRow,
@@ -175,6 +176,26 @@ describe("formatMoneyDisplay / parseMoneyInput (es-CO)", () => {
   });
 });
 
+describe("parseStoredRate (tasas con coma decimal de Google Sheets)", () => {
+  it("parsea decimales con coma", () => {
+    expect(parseStoredRate("3628,87413")).toBeCloseTo(3628.87413, 5);
+  });
+
+  it("parsea puntos de miles", () => {
+    expect(parseStoredRate("3.137,586")).toBeCloseTo(3137.586, 3);
+  });
+
+  it("acepta números nativos", () => {
+    expect(parseStoredRate(3137.586)).toBe(3137.586);
+  });
+
+  it("devuelve NaN para vacío/undefined/null", () => {
+    expect(Number.isNaN(parseStoredRate(""))).toBe(true);
+    expect(Number.isNaN(parseStoredRate(undefined))).toBe(true);
+    expect(Number.isNaN(parseStoredRate(null))).toBe(true);
+  });
+});
+
 describe("rateForTarget / convertAmountToBase (cambio de moneda base en tiempo real)", () => {
   const rows: RateRow[] = [
     rateRow({ targetCurrency: "USD", rate: 4200, source: "auto", date: "2026-01-05" }),
@@ -195,6 +216,14 @@ describe("rateForTarget / convertAmountToBase (cambio de moneda base en tiempo r
     expect(rateForTarget(rows, "ARS", "2026-01-10")).toBeUndefined();
   });
 
+  it("rateForTarget cae a la tasa más reciente de cualquier fecha", () => {
+    const futureOnly = [
+      rateRow({ targetCurrency: "USD", rate: 4400, source: "auto", date: "2026-02-10" }),
+      rateRow({ targetCurrency: "USD", rate: 4300, source: "auto", date: "2026-03-10" }),
+    ];
+    expect(rateForTarget(futureOnly, "USD", "2026-01-01")).toBe(4300);
+  });
+
   it("no convierte si from === to", () => {
     expect(convertAmountToBase(1000, "COP", "COP", "2026-01-10", rows)).toBe(1000);
   });
@@ -212,8 +241,11 @@ describe("rateForTarget / convertAmountToBase (cambio de moneda base en tiempo r
     expect(convertAmountToBase(100, "USD", "EUR", "2026-01-10", rows)).toBeCloseTo(95.65, 2);
   });
 
-  it("COP -> USD con fecha sin tasa devuelve el monto sin convertir", () => {
-    expect(convertAmountToBase(1000, "COP", "USD", "2026-01-01", rows)).toBe(1000);
+  it("COP -> USD con fecha sin tasa usa la más reciente (cualquier fecha)", () => {
+    const futureOnly = [
+      rateRow({ targetCurrency: "USD", rate: 4400, source: "auto", date: "2026-02-10" }),
+    ];
+    expect(convertAmountToBase(440000, "COP", "USD", "2026-01-01", futureOnly)).toBe(100);
   });
 
   it("devuelve el monto si falta la tasa de la moneda origen", () => {

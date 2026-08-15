@@ -1,6 +1,6 @@
 import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
-import { fetchLatestRates, getCopRates, DEFAULT_CURRENCIES } from "@/lib/currency";
+import { fetchLatestRates, getCopRates, parseStoredRate, DEFAULT_CURRENCIES } from "@/lib/currency";
 import { NextResponse } from "next/server";
 
 async function getConfig(sheets: SheetsClient): Promise<Record<string, any>> {
@@ -28,7 +28,7 @@ export async function GET() {
 
     const ratesRes = await sheets.getRows("TasasCambio!A:F");
     const rates = ratesRes.slice(1).map((row) => ({
-      baseCurrency: row[0], targetCurrency: row[1], rate: parseFloat(row[2]),
+      baseCurrency: row[0], targetCurrency: row[1], rate: parseStoredRate(row[2]),
       source: row[3], date: row[4], fetchedAt: row[5],
     }));
 
@@ -58,7 +58,7 @@ export async function PATCH() {
     const rows = ratesRes.slice(1);
 
     const isValidRate = (v: any) => {
-      const n = parseFloat(v);
+      const n = parseStoredRate(v);
       return Number.isFinite(n) && n > 0;
     };
 

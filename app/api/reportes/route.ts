@@ -9,7 +9,7 @@ import {
   summarizeWithPrev,
   type ReportTransaction,
 } from "@/lib/reports";
-import { convertAmountToBase, type RateRow } from "@/lib/currency";
+import { convertAmountToBase, parseStoredRate, type RateRow } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       .map((r) => ({
         baseCurrency: r[0],
         targetCurrency: r[1],
-        rate: parseFloat(r[2]),
+        rate: parseStoredRate(r[2]),
         source: r[3] === "manual" ? "manual" : "auto",
         date: r[4],
         fetchedAt: r[5],

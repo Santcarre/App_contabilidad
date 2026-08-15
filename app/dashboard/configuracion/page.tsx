@@ -60,6 +60,12 @@ export default function ConfiguracionPage() {
     if (enabled) updateRatesNow.mutate();
   };
 
+  const handleChangeBase = (value: string) => {
+    setCurrencyBase(value);
+    updateConfig.mutate({ currencyBase: value });
+    updateRatesNow.mutate();
+  };
+
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Cargando configuración...</div>;
   }
@@ -113,7 +119,7 @@ export default function ConfiguracionPage() {
                   <Label>Moneda principal</Label>
                   <p className="text-sm text-muted-foreground">Todos los reportes y balances se mostrarán en esta moneda</p>
                 </div>
-                <Select value={currencyBase} onValueChange={(value) => { setCurrencyBase(value); updateConfig.mutate({ currencyBase: value }); }}>
+                <Select value={currencyBase} onValueChange={handleChangeBase}>
                   <SelectTrigger className="w-[240px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -138,21 +144,32 @@ export default function ConfiguracionPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2">
-                {SUPPORTED_CURRENCIES.filter((c) => c.code !== currencyBase).map((c) => (
-                  <div key={c.code} className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-semibold w-8">{c.symbol}</span>
-                      <div>
-                        <p className="text-sm font-medium">{c.code}</p>
-                        <p className="text-xs text-muted-foreground">{c.name}</p>
+                {SUPPORTED_CURRENCIES.map((c) => {
+                  const isBase = c.code === currencyBase;
+                  return (
+                    <div key={c.code} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-semibold w-8">{c.symbol}</span>
+                        <div>
+                          <p className="text-sm font-medium flex items-center gap-2">
+                            {c.code}
+                            {isBase && (
+                              <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                Moneda base
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{c.name}</p>
+                        </div>
                       </div>
+                      <Switch
+                        checked={isBase || activeCurrencies.includes(c.code)}
+                        disabled={isBase}
+                        onCheckedChange={(enabled) => handleToggleCurrency(c.code, enabled)}
+                      />
                     </div>
-                    <Switch
-                      checked={activeCurrencies.includes(c.code)}
-                      onCheckedChange={(enabled) => handleToggleCurrency(c.code, enabled)}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -185,21 +202,24 @@ export default function ConfiguracionPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeCurrencies.filter((c) => c !== currencyBase).length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                            No hay monedas activas. Activa algunas en &ldquo;Monedas activas&rdquo;.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        activeCurrencies.filter((c) => c !== currencyBase).map((code) => {
+                      {[currencyBase, ...activeCurrencies.filter((c) => c !== currencyBase)].map((code) => {
                           const info = getCurrencyInfo(code);
-                          const rate = ratesData
-                            ? getTodayRate(ratesData.rates, code, today)
-                            : undefined;
+                          const isBase = code === currencyBase;
+                          const rate = isBase
+                            ? { rate: 1, source: "auto" as const, date: today }
+                            : ratesData
+                              ? getTodayRate(ratesData.rates, code, today)
+                              : undefined;
                           return (
                             <TableRow key={code}>
-                              <TableCell className="font-medium">{info.code} <span className="text-muted-foreground">{info.symbol}</span></TableCell>
+                              <TableCell className="font-medium">
+                                {info.code} <span className="text-muted-foreground">{info.symbol}</span>
+                                {isBase && (
+                                  <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                    Base
+                                  </span>
+                                )}
+                              </TableCell>
                               <TableCell className="font-mono text-right">
                                 {rate ? formatCurrency(rate.rate, currencyBase) : "—"}
                               </TableCell>
@@ -212,7 +232,7 @@ export default function ConfiguracionPage() {
                             </TableRow>
                           );
                         })
-                      )}
+                      }
                     </TableBody>
                   </Table>
                 )}

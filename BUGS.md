@@ -58,6 +58,8 @@
 - [x] Monedas activas: al activar una moneda se actualiza su tasa al instante (PATCH); las tasas son de solo lectura (eliminados el input manual y el botón Guardar + API POST + hook useOverrideRate) (15/08)
 - [x] Cohesión de formularios: nuevo MoneyField (icono $ + pl-9, mismo diseño que Monto en nueva transacción) aplicado a Límite mensual (presupuesto) y Monto (recurrente) (15/08)
 - [x] Evolución mensual: eliminada la barra de Balance del gráfico (quedaban Ingresos verdes y Gastos rojos, más natural) (15/08)
+- [x] Configuración > Monedas: la moneda base (p.ej. EUR) no aparecía en "Monedas activas" ni en la tabla de tasas (se filtraba con `c !== currencyBase`). Ahora siempre se muestra con badge "Moneda base" (switch bloqueado) y su fila en tasas con valor 1 (15/08)
+- [x] Cambio de moneda base no convertía en Dashboard/Reportes: (1) las tasas guardadas por Sheets con locale es-CO venían como texto con coma decimal ("3628,87413") y parseFloat las truncaba a enteros; (2) las transacciones de fechas sin tasa caían al monto sin convertir. Fix: parseStoredRate (normaliza coma/puntos) + rateForTarget cae a la tasa más reciente de cualquier fecha + al cambiar la moneda base se refrescan las tasas al instante. Verificado con datos reales: 3.668.500 COP = $1.169,43 USD = 1.010,92 € (15/08)
 
 ## Diferidos (backlog)
 - **Drag & drop para reordenar categorías/fuentes** (icono de arrastre a la izquierda). Requiere @dnd-kit o similar. No está en el plan de sprints actual. Prioridad: media.
