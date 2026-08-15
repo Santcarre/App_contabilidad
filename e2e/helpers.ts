@@ -113,6 +113,25 @@ export function mockApi(page: Page) {
       });
     }
     if (path === "/api/reportes") return json(REPORTE);
+    if (path === "/api/billeteras") {
+      return json({
+        currencyBase: "COP",
+        wallets: [
+          {
+            id: FUENTES[0].id, name: "Efectivo", type: "efectivo", icon: "wallet", color: "amber-500",
+            initialBalance: 100000, income: 2500000, expense: 1200000, balance: 1400000,
+            transactions: [
+              { id: "t1", type: "gasto", amountOriginal: 50000, currencyOriginal: "COP", amountBase: 50000, date: "2026-08-10", sourceId: FUENTES[0].id, categoryName: "Mercado", note: "Supermercado" },
+              { id: "t2", type: "ingreso", amountOriginal: 2500000, currencyOriginal: "COP", amountBase: 2500000, date: "2026-08-01", sourceId: FUENTES[0].id, categoryName: "Salario", note: "Nómina" },
+            ],
+          },
+          {
+            id: FUENTES[1].id, name: "Bancolombia", type: "banco", icon: "building-2", color: "blue-500",
+            initialBalance: 0, income: 0, expense: 0, balance: 0, transactions: [],
+          },
+        ],
+      });
+    }
     if (path === "/api/recurrentes") return json({ recurrents: [] });
     if (path === "/api/presupuestos") return json({ budgets: [] });
     if (path === "/api/exchange-rates") return json({ rates: [], baseCurrency: "COP", currencies: ["COP", "USD", "EUR"] });

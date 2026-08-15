@@ -85,6 +85,7 @@ export function useCreateTransaction() {
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["reports"] });
       qc.invalidateQueries({ queryKey: ["budgets"] });
+      qc.invalidateQueries({ queryKey: ["billeteras"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -100,6 +101,7 @@ export function useUpdateTransaction() {
       toast.success("Transacción actualizada");
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["reports"] });
+      qc.invalidateQueries({ queryKey: ["billeteras"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -115,6 +117,7 @@ export function useDeleteTransaction() {
       toast.success("Transacción eliminada");
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["reports"] });
+      qc.invalidateQueries({ queryKey: ["billeteras"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });

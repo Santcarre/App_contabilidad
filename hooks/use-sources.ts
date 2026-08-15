@@ -42,6 +42,7 @@ export function useCreateSource() {
       if (data?.queued) { toast.info("Sin conexión: se guardó para sincronizar cuando vuelvas a estar en línea"); return; }
       toast.success("Fuente creada");
       qc.invalidateQueries({ queryKey: ["sources"] });
+      qc.invalidateQueries({ queryKey: ["billeteras"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -56,6 +57,7 @@ export function useUpdateSource() {
       if (data?.queued) { toast.info("Sin conexión: se guardó para sincronizar cuando vuelvas a estar en línea"); return; }
       toast.success("Fuente actualizada");
       qc.invalidateQueries({ queryKey: ["sources"] });
+      qc.invalidateQueries({ queryKey: ["billeteras"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -69,6 +71,7 @@ export function useDeleteSource() {
       if (data?.queued) { toast.info("Sin conexión: se guardó para sincronizar cuando vuelvas a estar en línea"); return; }
       toast.success("Fuente desactivada");
       qc.invalidateQueries({ queryKey: ["sources"] });
+      qc.invalidateQueries({ queryKey: ["billeteras"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
