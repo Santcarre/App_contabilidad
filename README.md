@@ -38,22 +38,22 @@ Aplicación web de contabilidad personal construida con Next.js 14, TypeScript, 
 
 ```
 app/
-├── (auth)/
+├── auth/
 │   ├── login/page.tsx
-│   └── callback/route.ts
-├── (dashboard)/
-│   ├── layout.tsx              # Sidebar + Header + User Switcher
+│   └── api/auth/[...nextauth]/route.ts   # NextAuth (Google + Credentials "switch")
+├── dashboard/
+│   ├── layout.tsx              # Sidebar + Header + User Switcher (auth() + redirect)
 │   ├── page.tsx                # Dashboard
 │   ├── transacciones/          # CRUD Transacciones
 │   ├── categorias/             # CRUD Categorías
-│   ├── fuentes/                # CRUD Fuentes
+│   ├── fuentes/                # CRUD Fuentes (Medio de Pago)
 │   ├── presupuestos/           # Presupuestos + alertas
 │   ├── recurrentes/            # Gastos recurrentes
-│   ├── reportes/               # Reportes + gráficos
+│   ├── reportes/               # Reportes + gráficos (recharts lazy)
 │   └── configuracion/          # Configuración (moneda, tema, tasas)
 ├── api/
+│   ├── auth/users/             # Lista de cuentas activas (switch user)
 │   ├── auth/[...nextauth]/     # NextAuth
-│   ├── auth/switch/            # Switch user
 │   ├── transacciones/          # CRUD Transacciones
 │   ├── categorias/             # CRUD Categorías
 │   ├── fuentes/                # CRUD Fuentes
@@ -64,17 +64,20 @@ app/
 │       ├── exchange-rates/     # Cron diario (6 AM)
 │       └── recurrentes/        # Cron mensual (día 1, 9 AM)
 ├── lib/
-│   ├── auth.ts                 # NextAuth config
-│   ├── google-sheets.ts        # Sheets API wrapper
+│   ├── auth-options.ts         # NextAuth config
+│   ├── google-sheets.ts        # Sheets API wrapper (batchGet)
 │   ├── currency.ts             # Conversión y formato monedas
 │   ├── encryption.ts           # AES-GCM para tokens
 │   ├── validation.ts           # Zod schemas
+│   ├── offline-queue.ts        # Cola offline (IndexedDB + Background Sync)
+│   ├── api-client.ts           # fetch compartido con soporte offline
 │   └── get-spreadsheet-id.ts   # Helpers para Server Actions
 ├── components/
 │   ├── ui/                     # shadcn/ui components
 │   ├── layout/                 # Sidebar, Header
-│   └── providers.tsx           # Session, Query, Theme providers
-└── middleware.ts               # Auth protection + spreadsheetId injection
+│   └── providers.tsx           # Session, Query, Theme, offline sync
+└── worker/
+    └── index.js                # Service Worker custom (Background Sync)
 ```
 
 ## Requisitos Previos
@@ -144,9 +147,18 @@ Abrir http://localhost:3000
 ## Despliegue en Vercel
 
 1. Push a GitHub
-2. Import Project en Vercel
-3. Configurar Environment Variables (Production, Preview, Development)
+2. Import Project en Vercel (framework: Next.js)
+3. Configurar Environment Variables (Production, Preview, Development):
+   ```
+   NEXTAUTH_SECRET, NEXTAUTH_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+   GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_KEY,
+   GOOGLE_USERS_SPREADSHEET_ID, ENCRYPTION_KEY, CRON_SECRET
+   ```
+   (`EXCHANGE_RATE_API` es opcional, apunta a Frankfurter por defecto)
 4. Deploy
+
+> Nota: `trustHost: true` ya está en `auth-options.ts`, así que Auth.js funciona
+> en Vercel sin configuración extra.
 
 ### Configurar Cron Jobs en Vercel
 
@@ -158,11 +170,11 @@ Los crons se configuran automáticamente via `vercel.json`. Verificar en Vercel 
 npm run dev          # Servidor desarrollo
 npm run build        # Build producción
 npm run start        # Servidor producción
-npm run lint         # ESLint
+npm run lint         # ESLint (next lint)
 npm run typecheck    # TypeScript check
 npm run format       # Prettier write
-npm run test         # Vitest
-npm run test:e2e     # Playwright
+npm run test         # Vitest (unit)
+npm run test:e2e     # Playwright (E2E)
 ```
 
 ## Modelo de Datos (Por Usuario)
@@ -183,29 +195,60 @@ Hoja global **Usuarios** (Service Account): email, tokens encriptados, spreadshe
 
 - Tokens OAuth encriptados AES-GCM-256 en hoja `Usuarios`
 - `ENCRYPTION_KEY` en env vars (32 bytes base64) - **backup obligatorio**
-- Middleware inyecta `spreadsheetId` por sesión (row-level security)
-- CSP headers configurados
+- Protección de rutas en `app/dashboard/layout.tsx` (`auth()` + redirect)
+- CSP, `X-Frame-Options`, `nosniff` vía headers en `next.config.js`
 - Rate limiting en Google Sheets (batch + exponential backoff)
 
 ## PWA / Offline
 
 - `next-pwa` con Workbox
 - Service Worker registra automáticamente
-- IndexedDB queue para mutaciones offline
-- Background Sync al recuperar conexión
+- IndexedDB queue para mutaciones offline (`lib/offline-queue.ts`)
+- Background Sync al recuperar conexión (`worker/index.js`, tag `contabilidad-outbox`)
 - Manifest + icons para "Add to Home Screen"
+
+## Roadmap / Pendiente
+
+- **Adaptación móvil**: el dashboard actual está pensado para desktop; falta pulir el layout responsive (sidebar colapsable, tablas → cards, formularios apilados) — pendiente de un sprint de diseño móvil.
+- **Drag & drop** para reordenar categorías/fuentes.
+- **Sentry** (monitoreo de errores) y **analytics** (opcional).
+- **Custom domain** en Vercel (opcional).
 
 ## Testing
 
 ```bash
-# Unit tests
+# Unit tests (currency, validation, encryption, generador recurrente, Sheets)
 npm run test
 
-# E2E tests
+# E2E tests (Playwright) — requiere puerto 3000 libre
 npm run test:e2e
-
-# Lighthouse CI (en PRs)
 ```
+
+### E2E (Playwright)
+
+Los tests E2E simulan el flujo completo de un usuario en un navegador real:
+
+- **Servidor de producción**: `playwright.config.ts` levanta `npm run build && npm run start` (evita el race del dev server y valida el bundle real, PWA incluida).
+- **Sesión forjada**: no se usa OAuth real — `e2e/helpers.ts` genera un JWT con `next-auth/jwt` (misma secret que el servidor) y lo inyecta como cookie `authjs.session-token`.
+- **API mockeada**: `mockApi()` intercepta `/api/**` y responde fixtures (transacciones, categorías, reportes...). Rutas no cubiertas devuelven 404 a propósito (un typo debe fallar el test).
+- **Cobertura**: login → dashboard → crear transacción → lista → reportes (tabs) → switch de usuario → logout.
+
+```bash
+npx playwright test            # suite completa
+npx playwright test -g "crear" # un solo test
+```
+
+### CI (GitHub Actions)
+
+`.github/workflows/ci.yml` corre en cada push/PR:
+
+| Job | Qué valida |
+|-----|------------|
+| `checks` | `tsc --noEmit` + `next lint` + `vitest` |
+| `e2e` | Playwright (build + start) con subida de artefactos si falla |
+| `lighthouse` | Budgets Perf > 90, A11y > 95 en 4 URLs (con sesión forjada) |
+
+Config de Lighthouse en `lighthouserc.js`. Si el repo define el secret `E2E_SECRET`, se usa en CI; si no, cae al default de `playwright.config.ts`.
 
 ## Troubleshooting
 
