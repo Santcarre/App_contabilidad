@@ -60,6 +60,9 @@ export const authOptions: NextAuthConfig = {
     }),
   ],
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  // Necesario en producción (next start / Vercel): Auth.js exige confiar en el
+  // host o rechaza /api/auth/* con UntrustedHost. En dev localhost se auto-confía.
+  trustHost: true,
   callbacks: {
     async signIn({ user, account }) {
       if (account && !account.refresh_token) return false;

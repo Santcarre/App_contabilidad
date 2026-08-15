@@ -41,6 +41,8 @@
 - [x] S6-06: tests unitarios nuevos — validation.ts (schemas transacciones/categorías/fuentes/presupuestos/recurrentes/config), encryption.ts (roundtrip, IVs únicos, datos corruptos), generador recurrente con mock de Sheets (4 casos: genera, nota descripción, omite no vencidas, conversión moneda). 46 tests verdes (14/08)
 - [x] S6-04: error boundaries (app/error.tsx global, app/dashboard/error.tsx), skeleton de carga (app/dashboard/loading.tsx), página 404 (app/not-found.tsx) (14/08)
 - [x] Transacciones "no cargaban" tras el batchGet: Google normaliza los rangos devueltos (p.ej. "Transacciones!A1:M1000") y las rutas buscaban la clave exacta pedida → 200 con lista vacía. Fix: batchGet normaliza las claves al rango solicitado (lib/google-sheets.ts) + test de regresión (14/08)
+- [x] S6-07 (E2E): descubierto que en producción (next start / Vercel) Auth.js rechaza /api/auth/* con "UntrustedHost" — añadido `trustHost: true` a authOptions (en dev localhost se auto-confía, por eso no se veía). Sin esto, login y sesión fallarían en el deploy (14/08)
+- [x] S6-07 (E2E): los E2E usan servidor de producción (build + start) porque el dev server compila por demanda y el navegador podía recibir un chunk a medias ("Invalid or unexpected token") en la 1ª carga de cada ruta (14/08)
 
 ## Diferidos (backlog)
 - **Recurrentes (Sprint 5)**: aplicar en el formulario el mismo patrón que transacciones — MoneyInput (monto formateado) y Combobox con búsqueda para Categoría y Fuente (26/01)
