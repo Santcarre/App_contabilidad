@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, Loader2, Menu, Users } from "lucide-react";
+import { LogOut, Loader2, Menu, Plus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ThemeToggle } from "./theme-toggle";
@@ -118,6 +118,12 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Añadir cuenta
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Cerrar sesión
