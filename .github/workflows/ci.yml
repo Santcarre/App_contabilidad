@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Typecheck + Lint + Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx vitest run
+
+  e2e:
+    name: E2E (Playwright, producción)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # El webServer del config hace build + start; E2E_SECRET opcional:
+      # si el repo lo define, se usa; si no, cae al default del config.
+      - run: npx playwright test
+        env:
+          E2E_SECRET: ${{ secrets.E2E_SECRET }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 7
+
+  lighthouse:
+    name: Lighthouse (Perf > 90, A11y > 95)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Forja el JWT de sesión (misma técnica que los E2E) para que Lighthouse
+      # audite las páginas autenticadas y no el redirect a /auth/login
+      - name: Forjar cookie de sesión
+        run: |
+          node -e "
+            const { encode } = require('next-auth/jwt');
+            const secret = process.env.E2E_SECRET || 'e2e-secret-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP';
+            encode({
+              token: {
+                name: 'CI', email: 'ci@test.com', sub: 'ci@test.com', picture: '',
+                accessToken: 'fake', refreshToken: 'fake', accessTokenExpires: Date.now() + 3600000,
+                spreadsheetId: 'fake-spreadsheet-id',
+              },
+              secret, salt: 'authjs.session-token', maxAge: 30 * 24 * 60 * 60,
+            }).then((t) => require('fs').writeFileSync('.lhci-cookie', t));
+          "
+      - uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./lighthouserc.js
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        env:
+          E2E_SECRET: ${{ secrets.E2E_SECRET }}

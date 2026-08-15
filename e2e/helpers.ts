@@ -117,6 +117,8 @@ export function mockApi(page: Page) {
     if (path === "/api/presupuestos") return json({ budgets: [] });
     if (path === "/api/exchange-rates") return json({ rates: [], baseCurrency: "COP", currencies: ["COP", "USD", "EUR"] });
 
-    return json({});
+    // Ruta no cubierta: 404 en vez de {} silencioso — un typo en un endpoint
+    // futuro debe fallar el test, no dar un falso positivo.
+    return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "mock sin definir" }) });
   });
 }

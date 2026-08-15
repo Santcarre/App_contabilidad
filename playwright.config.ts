@@ -2,8 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 // Secret de test: el webServer arranca next (producción) con este valor
 // (sobrescribe .env), así podemos forjar la cookie de sesión JWT en los
-// tests sin OAuth real.
-export const E2E_SECRET = "e2e-secret-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP";
+// tests sin OAuth real. En CI se inyecta vía env; local cae al default.
+export const E2E_SECRET =
+  process.env.E2E_SECRET ?? "e2e-secret-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP";
 
 export default defineConfig({
   testDir: "./e2e",

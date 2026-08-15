@@ -1,0 +1,7 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [".next/**", "out/**", "build/**", "next-env.d.ts", "test-results/**", "playwright-report/**", "e2e/**"],
+  "rules": {
+    "@next/next/no-img-element": "warn"
+  }
+}

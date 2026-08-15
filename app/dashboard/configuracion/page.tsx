@@ -213,7 +213,7 @@ export default function ConfiguracionPage() {
                       {activeCurrencies.filter((c) => c !== currencyBase).length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            No hay monedas activas. Activa algunas en "Monedas activas".
+                            No hay monedas activas. Activa algunas en &ldquo;Monedas activas&rdquo;.
                           </TableCell>
                         </TableRow>
                       ) : (

@@ -43,6 +43,8 @@
 - [x] Transacciones "no cargaban" tras el batchGet: Google normaliza los rangos devueltos (p.ej. "Transacciones!A1:M1000") y las rutas buscaban la clave exacta pedida → 200 con lista vacía. Fix: batchGet normaliza las claves al rango solicitado (lib/google-sheets.ts) + test de regresión (14/08)
 - [x] S6-07 (E2E): descubierto que en producción (next start / Vercel) Auth.js rechaza /api/auth/* con "UntrustedHost" — añadido `trustHost: true` a authOptions (en dev localhost se auto-confía, por eso no se veía). Sin esto, login y sesión fallarían en el deploy (14/08)
 - [x] S6-07 (E2E): los E2E usan servidor de producción (build + start) porque el dev server compila por demanda y el navegador podía recibir un chunk a medias ("Invalid or unexpected token") en la 1ª carga de cada ruta (14/08)
+- [x] Lint roto: eslint.config.mjs usaba `eslint/config` (API de ESLint 9) con ESLint 8.57 instalado → `next lint` caía en prompt interactivo. Migrado a `.eslintrc.json` (next/core-web-vitals, next 14.2) + comillas escapadas en Configuración (14/08)
+- [x] S6-08: workflow CI en `.github/workflows/ci.yml` (typecheck + lint + vitest, E2E Playwright con upload de report en fallo) + Lighthouse CI con `lighthouserc.js` (budgets Perf > 90, A11y > 95; sesión forjada por cookie para auditar páginas autenticadas) (14/08)
 
 ## Diferidos (backlog)
 - **Recurrentes (Sprint 5)**: aplicar en el formulario el mismo patrón que transacciones — MoneyInput (monto formateado) y Combobox con búsqueda para Categoría y Fuente (26/01)

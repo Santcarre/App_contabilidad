@@ -60,8 +60,13 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await mockApi(page);
     await page.goto("/dashboard/transacciones");
 
-    // Abrir el menú del avatar y cambiar a otra cuenta
-    await page.locator("header").getByRole("button").last().click();
+    // Trigger del menú del avatar: el único botón con aria-haspopup="menu"
+    // cuyo nombre es la inicial del usuario (el theme-toggle también es un
+    // menú, pero su nombre está vacío — solo contiene un icono)
+    const avatarTrigger = page
+      .locator('header button[aria-haspopup="menu"]')
+      .filter({ hasText: "D" });
+    await avatarTrigger.click();
     await page.getByText("Otra Cuenta").click();
     // switchUser hace window.location.href = "/dashboard" (reload completo:
     // el toast se pierde en el reload, se valida el resultado por la URL)
@@ -69,7 +74,7 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
     // Cerrar sesión real
-    await page.locator("header").getByRole("button").last().click();
+    await avatarTrigger.click();
     await page.getByRole("menuitem", { name: /cerrar sesión/i }).click();
     await expect(page).toHaveURL(/\/auth\/login/);
   });
