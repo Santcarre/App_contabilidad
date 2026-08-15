@@ -11,7 +11,15 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { getColorValue } from "@/lib/color-map";
 
-export function MonthlyTrendChart({ trend, currencyBase }: { trend: any[]; currencyBase: string }) {
+export function MonthlyTrendChart({
+  trend,
+  currencyBase,
+  visible,
+}: {
+  trend: any[];
+  currencyBase: string;
+  visible: { income: boolean; expense: boolean; balance: boolean };
+}) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={trend}>
@@ -19,8 +27,9 @@ export function MonthlyTrendChart({ trend, currencyBase }: { trend: any[]; curre
         <YAxis width={100} tickFormatter={(v) => formatCurrency(Number(v ?? 0), currencyBase)} />
         <Tooltip formatter={(v) => [formatCurrency(Number(v ?? 0), currencyBase)]} labelFormatter={(m) => format(parseISO(String(m) + "-01"), "MMMM yyyy", { locale: es })} />
         <Legend />
-        <Bar dataKey="income" fill="#22c55e" name="Ingresos" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="expense" fill="#ef4444" name="Gastos" radius={[4, 4, 0, 0]} />
+        {visible.income && <Bar dataKey="income" fill="#22c55e" name="Ingresos" radius={[4, 4, 0, 0]} />}
+        {visible.expense && <Bar dataKey="expense" fill="#ef4444" name="Gastos" radius={[4, 4, 0, 0]} />}
+        {visible.balance && <Bar dataKey="balance" fill="#3b82f6" name="Balance" radius={[4, 4, 0, 0]} />}
         {trend.length > 12 && (
           <Brush
             dataKey="month"

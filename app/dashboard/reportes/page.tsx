@@ -14,6 +14,15 @@ import { es } from "date-fns/locale";
 import dynamic from "next/dynamic";
 import { exportToCSV } from "@/utils/export";
 import { getColorValue } from "@/lib/color-map";
+import { Switch } from "@/components/ui/switch";
+
+const TREND_SERIES = [
+  { key: "income", label: "Ingresos", color: "#22c55e" },
+  { key: "expense", label: "Gastos", color: "#ef4444" },
+  { key: "balance", label: "Balance", color: "#3b82f6" },
+] as const;
+
+type TrendSeriesKey = (typeof TREND_SERIES)[number]["key"];
 
 const MonthlyTrendChart = dynamic(() => import("@/components/report-charts").then((m) => m.MonthlyTrendChart), {
   loading: () => <div className="h-[300px] w-full animate-pulse rounded-lg bg-muted" />,
@@ -57,6 +66,17 @@ function ReportesContent() {
   const [activeTab, setActiveTab] = useState("resumen");
   const [month, setMonth] = useState(() => parseMonthParam(searchParams.get("month")));
   const [type, setType] = useState<"gasto" | "ingreso">("gasto");
+  const [visibleSeries, setVisibleSeries] = useState<Record<TrendSeriesKey, boolean>>({
+    income: true,
+    expense: true,
+    balance: false,
+  });
+
+  const toggleSeries = (key: TrendSeriesKey) => {
+    setVisibleSeries((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const anySeriesVisible = TREND_SERIES.some((s) => visibleSeries[s.key]);
 
   useEffect(() => {
     const urlMonth = searchParams.get("month");
@@ -201,20 +221,35 @@ function ReportesContent() {
 
             <Card className="mt-4">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Evolución mensual</CardTitle>
-                  {trend.length > 12 && (
-                    <p className="text-xs text-muted-foreground">
-                      Arrastra el deslizador para recorrer el historial
-                    </p>
-                  )}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <CardTitle>Evolución mensual</CardTitle>
+                    {trend.length > 12 && (
+                      <p className="text-xs text-muted-foreground">
+                        Arrastra el deslizador para recorrer el historial
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    {TREND_SERIES.map((s) => (
+                      <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                        <Switch checked={visibleSeries[s.key]} onCheckedChange={() => toggleSeries(s.key)} />
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                          {s.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {trend.length === 0 || trend.every((t) => !t.income && !t.expense) ? (
                   <EmptyState message="Sin movimientos registrados. Registra gastos e ingresos para ver tu evolución." />
+                ) : !anySeriesVisible ? (
+                  <EmptyState message="Activa al menos una serie (Ingresos, Gastos o Balance) para ver el gráfico." />
                 ) : (
-                  <MonthlyTrendChart trend={trend} currencyBase={currencyBase} />
+                  <MonthlyTrendChart trend={trend} currencyBase={currencyBase} visible={visibleSeries} />
                 )}
               </CardContent>
             </Card>
