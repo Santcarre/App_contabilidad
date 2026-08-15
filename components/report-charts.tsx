@@ -21,7 +21,6 @@ export function MonthlyTrendChart({ trend, currencyBase }: { trend: any[]; curre
         <Legend />
         <Bar dataKey="income" fill="#22c55e" name="Ingresos" radius={[4, 4, 0, 0]} />
         <Bar dataKey="expense" fill="#ef4444" name="Gastos" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="balance" fill="#3b82f6" name="Balance" radius={[4, 4, 0, 0]} />
         {trend.length > 12 && (
           <Brush
             dataKey="month"

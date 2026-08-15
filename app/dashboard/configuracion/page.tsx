@@ -2,22 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, Save } from "lucide-react";
-import { SUPPORTED_CURRENCIES, getCurrencyInfo, getTodayRate } from "@/lib/currency";
+import { RefreshCw } from "lucide-react";
+import { SUPPORTED_CURRENCIES, getCurrencyInfo, getTodayRate, formatCurrency } from "@/lib/currency";
 import { useTheme } from "@/components/theme-provider";
 import {
   useConfig,
   useUpdateConfig,
   useRates,
   useUpdateRatesNow,
-  useOverrideRate,
 } from "@/hooks/use-config";
 
 export default function ConfiguracionPage() {
@@ -25,14 +23,12 @@ export default function ConfiguracionPage() {
   const updateConfig = useUpdateConfig();
   const { data: ratesData, isLoading: loadingRates } = useRates();
   const updateRatesNow = useUpdateRatesNow();
-  const overrideRate = useOverrideRate();
   const { setTheme: applyTheme } = useTheme();
 
   const [currencyBase, setCurrencyBase] = useState("COP");
   const [theme, setTheme] = useState("system");
   const [budgetStrictMode, setBudgetStrictMode] = useState(false);
   const [activeCurrencies, setActiveCurrencies] = useState<string[]>(["USD", "EUR"]);
-  const [rateInputs, setRateInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (config) {
@@ -53,18 +49,6 @@ export default function ConfiguracionPage() {
     if (missing) updateRatesNow.mutate();
   }, [ratesData, updateRatesNow]);
 
-  useEffect(() => {
-    if (ratesData) {
-      const today = new Date().toISOString().split("T")[0];
-      const inputs: Record<string, string> = {};
-      for (const code of ratesData.currencies) {
-        const rate = getTodayRate(ratesData.rates, code, today);
-        if (rate) inputs[code] = String(rate.rate);
-      }
-      setRateInputs((prev) => ({ ...prev, ...inputs }));
-    }
-  }, [ratesData]);
-
   const today = new Date().toISOString().split("T")[0];
 
   const handleToggleCurrency = (code: string, enabled: boolean) => {
@@ -73,16 +57,7 @@ export default function ConfiguracionPage() {
       : activeCurrencies.filter((c) => c !== code);
     setActiveCurrencies(next);
     updateConfig.mutate({ currencies: next });
-  };
-
-  const handleRateInput = (code: string, value: string) => {
-    setRateInputs((prev) => ({ ...prev, [code]: value }));
-  };
-
-  const handleSaveRate = (code: string) => {
-    const rate = parseFloat(rateInputs[code] ?? "");
-    if (!rate || rate <= 0) return;
-    overrideRate.mutate({ targetCurrency: code, rate });
+    if (enabled) updateRatesNow.mutate();
   };
 
   if (isLoading) {
@@ -195,7 +170,7 @@ export default function ConfiguracionPage() {
                 <p className="text-sm text-muted-foreground">
                   Las tasas se actualizan automáticamente cada día a las 6 AM UTC desde open.er-api.com.
                   La tasa indica el valor de <span className="font-medium">1 unidad de esa moneda en {currencyBase}</span>{" "}
-                  (ej: 1 USD = 4.200 {currencyBase}). Puedes sobrescribir manualmente cualquier tasa (prioridad sobre la automática).
+                  (ej: 1 USD = 4.200 {currencyBase}). Al activar una moneda su tasa se actualiza al instante.
                 </p>
                 {loadingRates ? (
                   <p className="py-8 text-center text-muted-foreground">Cargando tasas...</p>
@@ -207,13 +182,12 @@ export default function ConfiguracionPage() {
                         <TableHead>1 unidad en {currencyBase}</TableHead>
                         <TableHead>Fuente</TableHead>
                         <TableHead>Fecha</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {activeCurrencies.filter((c) => c !== currencyBase).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                             No hay monedas activas. Activa algunas en &ldquo;Monedas activas&rdquo;.
                           </TableCell>
                         </TableRow>
@@ -226,15 +200,8 @@ export default function ConfiguracionPage() {
                           return (
                             <TableRow key={code}>
                               <TableCell className="font-medium">{info.code} <span className="text-muted-foreground">{info.symbol}</span></TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={rateInputs[code] ?? ""}
-                                  onChange={(e) => handleRateInput(code, e.target.value)}
-                                  className="w-[160px] font-mono"
-                                />
+                              <TableCell className="font-mono text-right">
+                                {rate ? formatCurrency(rate.rate, currencyBase) : "—"}
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${rate?.source === "manual" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}>
@@ -242,17 +209,6 @@ export default function ConfiguracionPage() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{rate?.date ?? "—"}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleSaveRate(code)}
-                                  disabled={overrideRate.isPending}
-                                >
-                                  <Save className="mr-2 h-4 w-4" />
-                                  Guardar
-                                </Button>
-                              </TableCell>
                             </TableRow>
                           );
                         })

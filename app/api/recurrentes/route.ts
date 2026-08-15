@@ -163,7 +163,7 @@ export async function DELETE(request: NextRequest) {
     if (rowIndex === -1) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
     const sheetRow = rowIndex + 2;
-    await sheets.update(`Recurrentes!K${sheetRow}`, [["FALSE"]]);
+    await sheets.deleteRows("Recurrentes", sheetRow);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

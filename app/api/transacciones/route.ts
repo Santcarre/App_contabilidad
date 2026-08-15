@@ -1,7 +1,7 @@
 import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { transactionSchema } from "@/lib/validation";
-import { getRate } from "@/lib/currency";
+import { getRate, convertAmountToBase } from "@/lib/currency";
 import { ExchangeRate } from "@/lib/currency";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -209,18 +209,29 @@ export async function POST(request: NextRequest) {
     let budgetAlert: { level: "warning" | "exceeded"; categoryName: string; spent: number; limit: number; currency: string } | null = null;
     if (parsed.data.type === "gasto") {
       const month = parsed.data.date.slice(0, 7);
-      const budgetsRes = await sheets.getRows("Presupuestos!A:G");
+      const budgetsRes = await sheets.getRows("Presupuestos!A:H");
       const budget = budgetsRes
         .slice(1)
         .find((r) => r[0] && r[1] === parsed.data.categoryId && r[3] === month);
       if (budget) {
-        const limit = parseFloat(budget[2]);
+        const budgetBase = budget[7] || "COP";
+        const ratesRes = await sheets.getRows("TasasCambio!A:F");
+        const rateRows = ratesRes.slice(1).filter((r) => r[0]).map((r) => ({
+          baseCurrency: r[0],
+          targetCurrency: r[1],
+          rate: parseFloat(r[2]),
+          source: r[3] === "manual" ? ("manual" as const) : ("auto" as const),
+          date: r[4],
+          fetchedAt: r[5],
+        }));
+        const today = new Date().toISOString().split("T")[0];
+        const limit = convertAmountToBase(parseFloat(budget[2]) || 0, budgetBase, currencyBase, today, rateRows);
         const txRows = await sheets.getRows("Transacciones!A:M");
         const spent =
           txRows
             .slice(1)
             .filter((r) => r[0] && r[1] === "gasto" && r[6] === parsed.data.categoryId && r[8]?.startsWith(month))
-            .reduce((sum, r) => sum + (parseFloat(r[4]) || 0), 0) + amountBase;
+            .reduce((sum, r) => sum + convertAmountToBase(parseFloat(r[4]) || 0, r[5] || "COP", currencyBase, r[8], rateRows), 0) + amountBase;
         const pct = limit > 0 ? spent / limit : 1;
         if (pct >= 1 && budget[5] === "TRUE") {
           budgetAlert = { level: "exceeded", categoryName: category.name, spent: Math.round(spent * 100) / 100, limit, currency: currencyBase };

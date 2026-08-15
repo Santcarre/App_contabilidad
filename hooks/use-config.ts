@@ -72,17 +72,3 @@ export function useUpdateRatesNow() {
     onError: (error: Error) => toast.error(error.message),
   });
 }
-
-export function useOverrideRate() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { targetCurrency: string; rate: number }) =>
-      request("/api/exchange-rates", { method: "POST", body: JSON.stringify(input) }),
-    onSuccess: (data) => {
-      if (data?.queued) { toast.info("Sin conexión: se guardó para sincronizar cuando vuelvas a estar en línea"); return; }
-      toast.success("Tasa manual guardada");
-      qc.invalidateQueries({ queryKey: ["rates"] });
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-}

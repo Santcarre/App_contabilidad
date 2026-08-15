@@ -19,6 +19,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
   }));
 
+  // En móvil los toasts salen abajo (no tapan el menú del header)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   useEffect(() => {
     // Sincroniza la cola offline al arrancar, al volver la red y al re-enfocar
     initOfflineSync();
@@ -52,7 +62,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TooltipProvider>
             {children}
-            <Toaster position="top-right" richColors />
+            <Toaster position={isMobile ? "bottom-center" : "top-right"} richColors />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>

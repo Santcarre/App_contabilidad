@@ -2,9 +2,10 @@ import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { budgetSchema } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
+import { convertAmountToBase, type RateRow } from "@/lib/currency";
 
 async function getBudgets(sheets: SheetsClient): Promise<any[]> {
-  const res = await sheets.getRows("Presupuestos!A:G");
+  const res = await sheets.getRows("Presupuestos!A:H");
   return getBudgetsFromRows(res);
 }
 
@@ -12,6 +13,7 @@ function getBudgetsFromRows(res: any[][]): any[] {
   return res.slice(1).filter((r) => r[0]).map((row) => ({
     id: row[0], categoryId: row[1], limitAmount: parseFloat(row[2]),
     month: row[3], alert80: row[4] === "TRUE", alert100: row[5] === "TRUE", createdAt: row[6],
+    currencyBase: row[7] || "COP",
   }));
 }
 
@@ -26,17 +28,27 @@ function getCategoriesFromRows(res: any[][]): any[] {
   }));
 }
 
-async function getSpentByCategory(sheets: SheetsClient, month: string): Promise<Record<string, number>> {
-  const res = await sheets.getRows("Transacciones!A:M");
-  return getSpentByCategoryFromRows(res, month);
+function getConfigFromRows(res: any[][]): Record<string, any> {
+  const config: Record<string, any> = {};
+  for (const row of res) {
+    if (!row[0] || row[0] === "key") continue;
+    try {
+      config[row[0]] = JSON.parse(row[1]);
+    } catch {
+      config[row[0]] = row[1];
+    }
+  }
+  return config;
 }
 
-function getSpentByCategoryFromRows(res: any[][], month: string): Record<string, number> {
+function getSpentByCategoryFromRows(res: any[][], month: string, currencyBase: string, rateRows: RateRow[]): Record<string, number> {
   const spent: Record<string, number> = {};
   for (const row of res.slice(1)) {
     if (!row[0] || row[1] !== "gasto" || !row[8]?.startsWith(month)) continue;
     const categoryId = row[6];
-    spent[categoryId] = (spent[categoryId] ?? 0) + (parseFloat(row[4]) || 0);
+    const txBase = row[5] || "COP";
+    const amount = convertAmountToBase(parseFloat(row[4]) || 0, txBase, currencyBase, row[8], rateRows);
+    spent[categoryId] = (spent[categoryId] ?? 0) + amount;
   }
   return spent;
 }
@@ -51,13 +63,29 @@ export async function GET(request: NextRequest) {
     if (!month) return NextResponse.json({ error: "MISSING_MONTH" }, { status: 400 });
 
     const batch = await sheets.batchGet([
-      "Presupuestos!A:G",
+      "Presupuestos!A:H",
       "Categorias!A:H",
       "Transacciones!A:M",
+      "Configuracion!A:C",
+      "TasasCambio!A:F",
     ]);
-    const budgets = getBudgetsFromRows(batch["Presupuestos!A:G"] ?? []);
+    const budgets = getBudgetsFromRows(batch["Presupuestos!A:H"] ?? []);
     const categories = getCategoriesFromRows(batch["Categorias!A:H"] ?? []);
-    const spentByCategory = getSpentByCategoryFromRows(batch["Transacciones!A:M"] ?? [], month);
+    const config = getConfigFromRows(batch["Configuracion!A:C"] ?? []);
+    const currencyBase = config.currencyBase || "COP";
+    const rateRows: RateRow[] = (batch["TasasCambio!A:F"] ?? [])
+      .slice(1)
+      .filter((r) => r[0])
+      .map((r) => ({
+        baseCurrency: r[0],
+        targetCurrency: r[1],
+        rate: parseFloat(r[2]),
+        source: r[3] === "manual" ? "manual" : "auto",
+        date: r[4],
+        fetchedAt: r[5],
+      }));
+    const spentByCategory = getSpentByCategoryFromRows(batch["Transacciones!A:M"] ?? [], month, currencyBase, rateRows);
+    const today = new Date().toISOString().split("T")[0];
 
     const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
 
@@ -66,10 +94,11 @@ export async function GET(request: NextRequest) {
       ...b,
       categoryName: catMap[b.categoryId]?.name || "Desconocida",
       categoryColor: catMap[b.categoryId]?.color || "gray-500",
+      limitAmount: convertAmountToBase(b.limitAmount, b.currencyBase, currencyBase, today, rateRows),
       spent: Math.round((spentByCategory[b.categoryId] ?? 0) * 100) / 100,
     }));
 
-    return NextResponse.json({ budgets: enriched });
+    return NextResponse.json({ budgets: enriched, currencyBase });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -92,9 +121,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "BUDGET_EXISTS" }, { status: 409 });
     }
 
+    const config = getConfigFromRows(await sheets.getRows("Configuracion!A:C"));
+    const currencyBase = config.currencyBase || "COP";
+
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await sheets.append("Presupuestos", [id, parsed.data.categoryId, parsed.data.limitAmount, parsed.data.month, parsed.data.alert80, parsed.data.alert100, now]);
+    await sheets.append("Presupuestos", [id, parsed.data.categoryId, parsed.data.limitAmount, parsed.data.month, parsed.data.alert80, parsed.data.alert100, now, currencyBase]);
 
     return NextResponse.json({ success: true, id });
   } catch (error: any) {

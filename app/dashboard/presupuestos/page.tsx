@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { MoneyInput, parseMoneyInput } from "@/components/ui/money-input";
+import { MoneyField, parseMoneyInput } from "@/components/ui/money-field";
 import { getColorValue } from "@/lib/color-map";
 import { useRates } from "@/hooks/use-config";
 import {
@@ -149,10 +149,9 @@ export default function PresupuestosPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="limitAmount">Límite mensual ({currencyBase})</Label>
-                  <MoneyInput
+                  <MoneyField
                     id="limitAmount"
-                    placeholder="0,00"
+                    label={`Límite mensual (${currencyBase})`}
                     value={formData.limitAmount}
                     onChange={(raw) => setFormData({ ...formData, limitAmount: raw })}
                     required

@@ -123,7 +123,7 @@ export function Sidebar({
 
       {/* Móvil (< lg): drawer deslizante con overlay */}
       <Sheet open={mobileOpen} onOpenChange={onClose}>
-        <SheetContent side="left" className="w-72 p-0">
+        <SheetContent side="left" className="w-72 p-0" hideCloseButton>
           <SheetHeader className="flex h-16 flex-row items-center justify-between px-4 border-b flex-shrink-0">
             <SheetTitle className="text-lg">{brand}</SheetTitle>
             <Button

@@ -9,6 +9,7 @@ import {
   summarizeWithPrev,
   type ReportTransaction,
 } from "@/lib/reports";
+import { convertAmountToBase, type RateRow } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,23 @@ export async function GET(request: NextRequest) {
       "Categorias!A:H",
       "Fuentes!A:H",
       "Configuracion!A:C",
+      "TasasCambio!A:F",
     ]);
 
     const config = getConfigFromRows(batch["Configuracion!A:C"] ?? []);
     const currencyBase = config.currencyBase || "COP";
+
+    const rateRows: RateRow[] = (batch["TasasCambio!A:F"] ?? [])
+      .slice(1)
+      .filter((r) => r[0])
+      .map((r) => ({
+        baseCurrency: r[0],
+        targetCurrency: r[1],
+        rate: parseFloat(r[2]),
+        source: r[3] === "manual" ? "manual" : "auto",
+        date: r[4],
+        fetchedAt: r[5],
+      }));
 
     const txRows = (batch["Transacciones!A:M"] ?? []).slice(1).filter((r) => r[0]);
     const catRows = batch["Categorias!A:H"] ?? [];
@@ -67,10 +81,12 @@ export async function GET(request: NextRequest) {
       const sourceId = row[7];
       const cat = categories.get(categoryId);
       const src = sources.get(sourceId);
+      const txBase = row[5] || "COP";
+      const txDate = row[8] || new Date().toISOString().split("T")[0];
       return {
         id: row[0],
         type: row[1] as "gasto" | "ingreso",
-        amountBase: parseFloat(row[4]) || 0,
+        amountBase: convertAmountToBase(parseFloat(row[4]) || 0, txBase, currencyBase, txDate, rateRows),
         amountOriginal: parseFloat(row[2]) || 0,
         currencyOriginal: row[3] || "COP",
         date: row[8],

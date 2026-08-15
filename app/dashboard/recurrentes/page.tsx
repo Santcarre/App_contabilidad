@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
 import { Combobox } from "@/components/ui/combobox";
-import { MoneyInput, parseMoneyInput } from "@/components/ui/money-input";
+import { MoneyField, parseMoneyInput } from "@/components/ui/money-field";
 import { Switch } from "@/components/ui/switch";
 import CurrencySelect from "@/components/ui/currency-select";
 import { Plus, Edit, Trash2, PauseCircle, PlayCircle, Calendar, Clock, Loader2, Zap } from "lucide-react";
@@ -197,10 +197,9 @@ export default function RecurrentesPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="amountOriginal">Monto</Label>
-                  <MoneyInput
+                  <MoneyField
                     id="amountOriginal"
-                    placeholder="0,00"
+                    label="Monto"
                     value={formData.amountOriginal}
                     onChange={(raw) => setFormData({ ...formData, amountOriginal: raw })}
                     required

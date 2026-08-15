@@ -40,11 +40,63 @@ let rateCache: { rates: Record<string, number>; timestamp: number } | null = nul
 
 export interface ExchangeRate {
   baseCurrency: string;
-  targetCurrency: "USD" | "EUR";
+  targetCurrency: string;
   rate: number;
   source: "auto" | "manual";
   date: string;
   fetchedAt: string;
+}
+
+export interface RateRow {
+  baseCurrency: string;
+  targetCurrency: string;
+  rate: number;
+  source: "auto" | "manual";
+  date: string;
+  fetchedAt?: string;
+}
+
+/**
+ * Tasa de COP por 1 unidad de `target` para una fecha: manual del día >
+ * auto del día > auto más reciente (≤ fecha). Las filas almacenadas son
+ * siempre "COP por unidad de target", aunque la columna base diga otra cosa.
+ */
+export function rateForTarget(rows: RateRow[], target: string, date: string): number | undefined {
+  const dayManual = rows.find((r) => r.targetCurrency === target && r.date === date && r.source === "manual");
+  if (dayManual) return dayManual.rate;
+  const dayAuto = rows.find((r) => r.targetCurrency === target && r.date === date && r.source === "auto");
+  if (dayAuto) return dayAuto.rate;
+  const recent = rows
+    .filter((r) => r.targetCurrency === target && r.source === "auto" && r.date <= date)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  return recent?.rate;
+}
+
+/**
+ * Convierte un monto almacenado en `fromBase` (su moneda base al guardarse)
+ * a la moneda base actual `toBase`, usando las tasas de la fecha del monto.
+ * Si faltan tasas, devuelve el monto sin convertir (comportamiento previo).
+ */
+export function convertAmountToBase(
+  amount: number,
+  fromBase: string,
+  toBase: string,
+  date: string,
+  rateRows: RateRow[]
+): number {
+  if (fromBase === toBase || !Number.isFinite(amount) || amount <= 0) return amount;
+  const copPerFrom = rateForTarget(rateRows, fromBase, date);
+  const copPerTo = rateForTarget(rateRows, toBase, date);
+  if (fromBase === "COP") {
+    if (!copPerTo) return amount;
+    return Math.round((amount / copPerTo) * 100) / 100;
+  }
+  if (toBase === "COP") {
+    if (!copPerFrom) return amount;
+    return Math.round(amount * copPerFrom * 100) / 100;
+  }
+  if (!copPerFrom || !copPerTo) return amount;
+  return Math.round(((amount * copPerFrom) / copPerTo) * 100) / 100;
 }
 
 export async function fetchLatestRates(): Promise<Record<string, number>> {

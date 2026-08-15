@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   convert,
+  convertAmountToBase,
   formatCurrency,
   formatMoneyDisplay,
   getCopRates,
@@ -9,10 +10,16 @@ import {
   getRate,
   getTodayRate,
   parseMoneyInput,
+  rateForTarget,
   type ExchangeRate,
+  type RateRow,
 } from "@/lib/currency";
 
 function rate(partial: Partial<ExchangeRate>): ExchangeRate {
+  return { baseCurrency: "COP", targetCurrency: "USD", rate: 1, source: "auto", date: "2026-01-10", fetchedAt: "", ...partial };
+}
+
+function rateRow(partial: Partial<RateRow>): RateRow {
   return { baseCurrency: "COP", targetCurrency: "USD", rate: 1, source: "auto", date: "2026-01-10", fetchedAt: "", ...partial };
 }
 
@@ -165,6 +172,57 @@ describe("formatMoneyDisplay / parseMoneyInput (es-CO)", () => {
   it("devuelve 0 para valores inválidos", () => {
     expect(parseMoneyInput("")).toBe(0);
     expect(parseMoneyInput("abc")).toBe(0);
+  });
+});
+
+describe("rateForTarget / convertAmountToBase (cambio de moneda base en tiempo real)", () => {
+  const rows: RateRow[] = [
+    rateRow({ targetCurrency: "USD", rate: 4200, source: "auto", date: "2026-01-05" }),
+    rateRow({ targetCurrency: "USD", rate: 4400, source: "auto", date: "2026-01-10" }),
+    rateRow({ targetCurrency: "EUR", rate: 4600, source: "auto", date: "2026-01-10" }),
+    rateRow({ targetCurrency: "MXN", rate: 230, source: "auto", date: "2026-01-10" }),
+  ];
+
+  it("rateForTarget usa la fila del día", () => {
+    expect(rateForTarget(rows, "USD", "2026-01-10")).toBe(4400);
+  });
+
+  it("rateForTarget usa la más reciente <= fecha", () => {
+    expect(rateForTarget(rows, "USD", "2026-01-09")).toBe(4200);
+  });
+
+  it("rateForTarget devuelve undefined sin tasas", () => {
+    expect(rateForTarget(rows, "ARS", "2026-01-10")).toBeUndefined();
+  });
+
+  it("no convierte si from === to", () => {
+    expect(convertAmountToBase(1000, "COP", "COP", "2026-01-10", rows)).toBe(1000);
+  });
+
+  it("COP -> USD divide por la tasa del día", () => {
+    expect(convertAmountToBase(440000, "COP", "USD", "2026-01-10", rows)).toBe(100);
+  });
+
+  it("USD -> COP multiplica por la tasa del día", () => {
+    expect(convertAmountToBase(100, "USD", "COP", "2026-01-10", rows)).toBe(440000);
+  });
+
+  it("USD -> EUR usa ambas tasas (COP como puente)", () => {
+    // 100 USD * 4400 / 4600 = 95.6521...
+    expect(convertAmountToBase(100, "USD", "EUR", "2026-01-10", rows)).toBeCloseTo(95.65, 2);
+  });
+
+  it("COP -> USD con fecha sin tasa devuelve el monto sin convertir", () => {
+    expect(convertAmountToBase(1000, "COP", "USD", "2026-01-01", rows)).toBe(1000);
+  });
+
+  it("devuelve el monto si falta la tasa de la moneda origen", () => {
+    expect(convertAmountToBase(1000, "ARS", "USD", "2026-01-10", rows)).toBe(1000);
+  });
+
+  it("no convierte montos no finitos o <= 0", () => {
+    expect(convertAmountToBase(NaN, "COP", "USD", "2026-01-10", rows)).toBeNaN();
+    expect(convertAmountToBase(0, "COP", "USD", "2026-01-10", rows)).toBe(0);
   });
 });
 

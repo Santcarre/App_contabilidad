@@ -51,13 +51,15 @@
   3. `getRate` caía a **1.0** silencioso sin tasa (p.ej. MXN nunca se fetcheaba: solo USD/EUR).
   4. PATCH concurrente (cron + auto-refresh de Configuración) duplicaba filas.
   Fix: proveedor → open.er-api.com (166 monedas, COP incluido), `getCopRates` corregido + validado (`isFinite`), `getRate` lanza error claro ("Actualiza las tasas en Configuración"), PATCH valida/dedupe filas corruptas, POST manual valida `isFinite`, columna **Moneda** en transacciones (desktop + card móvil), aviso ámbar en el formulario si falta la tasa. Datos corruptos de la hoja real eliminados (transacción USD rota + filas de tasas vacías).
+- [x] Drawer móvil: botón de cerrar duplicado (el SheetContent de Radix renderiza su propio X y el sidebar añadía otro). Añadida prop `hideCloseButton` al SheetContent (15/08)
+- [x] Móvil: los toasts ahora salen abajo (position bottom-center en < 768px vía matchMedia) para no tapar el menú del header (15/08)
+- [x] Recurrentes: DELETE /api/recurrentes solo pausaba (escribía isActive=FALSE). Ahora borra la fila físicamente con deleteRows (15/08)
+- [x] Cambio de moneda base en tiempo real: antes cambiar COP→USD solo cambiaba el formato (decimales), no los valores. Ahora reportes, presupuestos (límite + gasto) y la alerta de presupuesto convierten cada transacción desde su moneda base almacenada (col F) a la base actual usando las tasas de la fecha. Presupuestos guardan su moneda base (col H, default COP) (15/08)
+- [x] Monedas activas: al activar una moneda se actualiza su tasa al instante (PATCH); las tasas son de solo lectura (eliminados el input manual y el botón Guardar + API POST + hook useOverrideRate) (15/08)
+- [x] Cohesión de formularios: nuevo MoneyField (icono $ + pl-9, mismo diseño que Monto en nueva transacción) aplicado a Límite mensual (presupuesto) y Monto (recurrente) (15/08)
+- [x] Evolución mensual: eliminada la barra de Balance del gráfico (quedaban Ingresos verdes y Gastos rojos, más natural) (15/08)
 
 ## Diferidos (backlog)
-- **Recurrentes (Sprint 5)**: aplicar en el formulario el mismo patrón que transacciones — MoneyInput (monto formateado) y Combobox con búsqueda para Categoría y Fuente (26/01)
 - **Drag & drop para reordenar categorías/fuentes** (icono de arrastre a la izquierda). Requiere @dnd-kit o similar. No está en el plan de sprints actual. Prioridad: media.
 - **Eliminar "Saldo inicial" de fuentes**: está contemplado en el plan (S2-11) para el balance por fuente en reportes. Decisión pendiente.
-- **Presupuestos**: no se puede seleccionar categoría; campos de dinero con moneda y símbolo en la misma línea. Pendiente de Sprint 5 (S5-03).
-- **Recurrentes**: no se puede seleccionar categoría ni fuente. Pendiente de Sprint 5 (S5-08).
-- **Configuración**: el cambio de moneda base no se aplica en cálculos históricos (las tasas del día se guardan con la base vieja); falta re-fetch de tasas al cambiar la base (12/08).
-- **Configuración**: al quitar una moneda activa se borran sus inputs de tasa de la tabla pero los overrides manuales de días pasados siguen en la hoja (12/08).
 - **Diseño móvil**: todo el dashboard no está adaptado a pantallas pequeñas. Pendiente de Sprint 6 (polish) o "port" móvil.
