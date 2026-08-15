@@ -60,6 +60,7 @@
 - [x] Evolución mensual: eliminada la barra de Balance del gráfico (quedaban Ingresos verdes y Gastos rojos, más natural) (15/08)
 - [x] Configuración > Monedas: la moneda base (p.ej. EUR) no aparecía en "Monedas activas" ni en la tabla de tasas (se filtraba con `c !== currencyBase`). Ahora siempre se muestra con badge "Moneda base" (switch bloqueado) y su fila en tasas con valor 1 (15/08)
 - [x] Cambio de moneda base no convertía en Dashboard/Reportes: (1) las tasas guardadas por Sheets con locale es-CO venían como texto con coma decimal ("3628,87413") y parseFloat las truncaba a enteros; (2) las transacciones de fechas sin tasa caían al monto sin convertir. Fix: parseStoredRate (normaliza coma/puntos) + rateForTarget cae a la tasa más reciente de cualquier fecha + al cambiar la moneda base se refrescan las tasas al instante. Verificado con datos reales: 3.668.500 COP = $1.169,43 USD = 1.010,92 € (15/08)
+- [x] Tabla de tasas con moneda base ≠ COP mostraba valores incorrectos (las tasas guardadas son "COP por unidad" pero se formateaban como si fueran de la base actual: 1 USD = "3.137 €" en vez de ~0,86 €). Fix: displayRate convierte con la base como puente (copPerTarget / copPerBase) y se recomputa al instante al cambiar la base; columna "Fuente" eliminada (ya no hay edición manual, el badge manual/automática no aportaba) (15/08)
 
 ## Diferidos (backlog)
 - **Drag & drop para reordenar categorías/fuentes** (icono de arrastre a la izquierda). Requiere @dnd-kit o similar. No está en el plan de sprints actual. Prioridad: media.

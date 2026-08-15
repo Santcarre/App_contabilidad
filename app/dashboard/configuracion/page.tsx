@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { RefreshCw } from "lucide-react";
-import { SUPPORTED_CURRENCIES, getCurrencyInfo, getTodayRate, formatCurrency } from "@/lib/currency";
+import { SUPPORTED_CURRENCIES, getCurrencyInfo, getTodayRate, formatCurrency, rateForTarget } from "@/lib/currency";
 import { useTheme } from "@/components/theme-provider";
 import {
   useConfig,
@@ -50,6 +50,17 @@ export default function ConfiguracionPage() {
   }, [ratesData, updateRatesNow]);
 
   const today = new Date().toISOString().split("T")[0];
+
+  // Las tasas guardadas son "COP por 1 unidad de X"; para mostrarlas en la
+  // moneda base actual se usa la base como puente (1 USD en EUR =
+  // copPerUSD / copPerEUR). Se recomputa al instante al cambiar la base.
+  const displayRate = (code: string): number | undefined => {
+    if (code === currencyBase) return 1;
+    const copPerTarget = rateForTarget(ratesData?.rates ?? [], code, today);
+    const copPerBase = rateForTarget(ratesData?.rates ?? [], currencyBase, today);
+    if (!copPerTarget || !copPerBase) return undefined;
+    return copPerTarget / copPerBase;
+  };
 
   const handleToggleCurrency = (code: string, enabled: boolean) => {
     const next = enabled
@@ -197,7 +208,6 @@ export default function ConfiguracionPage() {
                       <TableRow>
                         <TableHead>Moneda</TableHead>
                         <TableHead>1 unidad en {currencyBase}</TableHead>
-                        <TableHead>Fuente</TableHead>
                         <TableHead>Fecha</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -210,6 +220,7 @@ export default function ConfiguracionPage() {
                             : ratesData
                               ? getTodayRate(ratesData.rates, code, today)
                               : undefined;
+                          const shownRate = displayRate(code);
                           return (
                             <TableRow key={code}>
                               <TableCell className="font-medium">
@@ -221,12 +232,7 @@ export default function ConfiguracionPage() {
                                 )}
                               </TableCell>
                               <TableCell className="font-mono text-right">
-                                {rate ? formatCurrency(rate.rate, currencyBase) : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${rate?.source === "manual" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}>
-                                  {rate?.source === "manual" ? "Manual" : rate ? "Automática" : "—"}
-                                </span>
+                                {rate && shownRate !== undefined ? formatCurrency(shownRate, currencyBase) : "—"}
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{rate?.date ?? "—"}</TableCell>
                             </TableRow>
