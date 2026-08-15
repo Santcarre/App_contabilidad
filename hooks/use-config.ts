@@ -41,6 +41,12 @@ export function useUpdateConfig() {
       if (data?.queued) { toast.info("Sin conexión: se guardó para sincronizar cuando vuelvas a estar en línea"); return; }
       toast.success("Configuración guardada");
       qc.invalidateQueries({ queryKey: ["config"] });
+      // Al cambiar la moneda base, reportes/presupuestos/transacciones
+      // deben recalcularse ya (caché de 5 min haría ver datos viejos).
+      qc.invalidateQueries({ queryKey: ["reports"] });
+      qc.invalidateQueries({ queryKey: ["budgets"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["rates"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -68,6 +74,9 @@ export function useUpdateRatesNow() {
       if (data?.queued) { toast.info("Sin conexión: se guardó para sincronizar cuando vuelvas a estar en línea"); return; }
       toast.success(`Tasas actualizadas (${data.updated ?? 0} nuevas, ${data.appended ?? 0} agregadas)`);
       qc.invalidateQueries({ queryKey: ["rates"] });
+      // Las conversiones dependen de las tasas: recalcúlanse reportes
+      qc.invalidateQueries({ queryKey: ["reports"] });
+      qc.invalidateQueries({ queryKey: ["budgets"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
