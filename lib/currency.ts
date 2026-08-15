@@ -28,7 +28,12 @@ export function getCurrencyInfo(code: string): { code: string; symbol: string; n
 
 export const DEFAULT_CURRENCIES = ["USD", "EUR"];
 
-const FRANKFURTER_BASE = "https://api.frankfurter.dev/v1";
+/**
+ * open.er-api.com (gratis, sin key, ~160 monedas) — Frankfurter/ECB NO
+ * publica COP, por eso el auto-refresh anterior escribía NaN siempre.
+ * Respuesta base USD: { result: "success", rates: { COP, EUR, USD, ... } }.
+ */
+const ER_API = "https://open.er-api.com/v6/latest/USD";
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 let rateCache: { rates: Record<string, number>; timestamp: number } | null = null;
@@ -42,30 +47,38 @@ export interface ExchangeRate {
   fetchedAt: string;
 }
 
-export async function fetchLatestRates(base = "EUR"): Promise<Record<string, number>> {
+export async function fetchLatestRates(): Promise<Record<string, number>> {
   if (rateCache && Date.now() - rateCache.timestamp < CACHE_TTL) {
     return rateCache.rates;
   }
-  const res = await fetch(`${FRANKFURTER_BASE}/latest?base=${base}`);
-  if (!res.ok) throw new Error(`Frankfurter ${res.status}`);
+  const res = await fetch(ER_API);
+  if (!res.ok) throw new Error(`open.er-api ${res.status}`);
   const data = await res.json();
+  if (data?.result !== "success" || !data.rates) {
+    throw new Error("open.er-api: respuesta inválida");
+  }
   rateCache = { rates: data.rates, timestamp: Date.now() };
   return data.rates;
 }
 
-export async function fetchHistoricalRate(date: string, base = "EUR"): Promise<Record<string, number>> {
-  const res = await fetch(`${FRANKFURTER_BASE}/${date}?base=${base}`);
-  if (!res.ok) throw new Error(`Frankfurter historical ${res.status}`);
-  const data = await res.json();
-  return data.rates;
-}
-
-export function getCopRates(eurRates: Record<string, number>): { USD: number; EUR: number } {
-  const eurToCop = 1 / eurRates.COP;
-  return {
-    EUR: eurToCop,
-    USD: eurRates.USD * eurToCop,
-  };
+/**
+ * Convierte tasas base USD (open.er-api) a "COP por unidad" para TODAS las
+ * monedas devueltas: p.ej. { USD: 4200, EUR: 4600, MXN: 230, ... }.
+ * Antes devolvía "unidades por 1 COP" (invertido) y solo USD/EUR.
+ * Lanza si la respuesta no trae la tasa de COP (no se deben escribir NaN).
+ */
+export function getCopRates(rates: Record<string, number>): Record<string, number> {
+  const copPerUsd = rates.COP;
+  if (!Number.isFinite(copPerUsd) || copPerUsd <= 0) {
+    throw new Error("La API de tasas no devolvió la tasa de COP");
+  }
+  const copRates: Record<string, number> = {};
+  for (const [code, perUsd] of Object.entries(rates)) {
+    if (!Number.isFinite(perUsd) || perUsd <= 0) continue;
+    copRates[code] = copPerUsd / perUsd;
+  }
+  copRates.COP = 1;
+  return copRates;
 }
 
 export function convert(amount: number, from: string, to: string, rate: number): number {
@@ -121,8 +134,11 @@ export function getRate(
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   if (autoRecent) return autoRecent.rate;
 
-  console.warn(`No rate found for ${base}/${target} on ${date}, using 1.0`);
-  return 1.0;
+  // Antes caía a 1.0 en silencio → amountBase corrupto que no se registraba
+  // en el balance. Ahora falla con un mensaje claro (el toast lo muestra).
+  throw new Error(
+    `No hay tasa de cambio para ${target} el día ${date}. Actualiza las tasas en Configuración.`
+  );
 }
 
 export function getLatestRate(

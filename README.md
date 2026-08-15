@@ -10,7 +10,7 @@ Aplicación web de contabilidad personal construida con Next.js 14, TypeScript, 
 - 💰 **Transacciones** - Gastos e ingresos con categorías, fuentes, monedas, fechas y notas
 - 🏷️ **Categorías y Fuentes personalizables** - Iconos (Lucide), colores (Tailwind), soft delete
 - 🌍 **Multi-moneda** - COP, USD, EUR con conversión automática a moneda base
-- 📊 **Tasas de cambio automáticas** - Actualización diaria via Frankfurter.dev + override manual
+- 📊 **Tasas de cambio automáticas** - Actualización diaria via open.er-api.com + override manual
 - 💵 **Presupuestos** - Límites mensuales por categoría con alertas 80%/100%
 - 🔁 **Gastos recurrentes** - Plantillas mensuales con generación automática (cron día 1)
 - 📈 **Reportes visuales** - Resumen mensual, desglose por categoría/fuente, gráficos (Recharts), export CSV
@@ -29,7 +29,7 @@ Aplicación web de contabilidad personal construida con Next.js 14, TypeScript, 
 | Gráficos | Recharts |
 | Estado | TanStack Query (React Query) |
 | Fechas | date-fns |
-| Monedas | Frankfurter.dev (gratis) |
+| Monedas | open.er-api.com (gratis) |
 | PWA | next-pwa (Workbox) |
 | Deploy | Vercel (gratis) |
 | Cron Jobs | Vercel Cron |
@@ -154,7 +154,6 @@ Abrir http://localhost:3000
    GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_KEY,
    GOOGLE_USERS_SPREADSHEET_ID, ENCRYPTION_KEY, CRON_SECRET
    ```
-   (`EXCHANGE_RATE_API` es opcional, apunta a Frankfurter por defecto)
 4. Deploy
 
 > Nota: `trustHost: true` ya está en `auth-options.ts`, así que Auth.js funciona

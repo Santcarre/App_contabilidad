@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { targetCurrency, rate } = body;
-    if (!targetCurrency || typeof rate !== "number" || rate <= 0) {
+    if (!targetCurrency || !Number.isFinite(rate) || rate <= 0) {
       return NextResponse.json({ error: "MISSING_PARAMS" }, { status: 400 });
     }
 
@@ -85,7 +85,7 @@ export async function PATCH() {
     const targets = (config.currencies ?? DEFAULT_CURRENCIES) as string[];
 
     const eurRates = await fetchLatestRates();
-    const copRates = getCopRates(eurRates);
+    const copRates = getCopRates(eurRates); // lanza si Frankfurter no trae COP
 
     const today = new Date().toISOString().split("T")[0];
     const now = new Date().toISOString();
@@ -93,23 +93,53 @@ export async function PATCH() {
     const ratesRes = await sheets.getRows("TasasCambio!A:F");
     const rows = ratesRes.slice(1);
 
+    const isValidRate = (v: any) => {
+      const n = parseFloat(v);
+      return Number.isFinite(n) && n > 0;
+    };
+
     let updated = 0;
     let appended = 0;
+    let deleted = 0;
+
     for (const target of targets) {
-      if (!(target in copRates)) continue;
-      const rowIndex = rows.findIndex((r) => r[0] === baseCurrency && r[1] === target && r[4] === today);
-      if (rowIndex !== -1) {
-        if (rows[rowIndex][3] === "manual") continue;
-        const sheetRow = rowIndex + 2;
-        await sheets.update(`TasasCambio!C${sheetRow}:F${sheetRow}`, [[copRates[target as "USD" | "EUR"], "auto", today, now]]);
+      const rate = copRates[target];
+      // Nunca escribir NaN/undefined en la hoja
+      if (!Number.isFinite(rate) || rate <= 0) continue;
+
+      // Filas de hoy para (base, target): manual > auto. Las corruptas
+      // (tasa vacía/NaN) y duplicadas se eliminan (descendente, para no
+      // correr los índices al borrar).
+      const matching = rows
+        .map((row, i) => ({ row, sheetRow: i + 2 }))
+        .filter(({ row }) => row[0] === baseCurrency && row[1] === target && row[4] === today);
+
+      const keeper =
+        matching.find(({ row }) => isValidRate(row[2]) && row[3] === "manual") ??
+        matching.find(({ row }) => isValidRate(row[2]) && row[3] === "auto");
+
+      const toDelete = matching
+        .filter((m) => m !== keeper)
+        .sort((a, b) => b.sheetRow - a.sheetRow);
+      for (const d of toDelete) {
+        await sheets.deleteRows("TasasCambio", d.sheetRow);
+        deleted++;
+      }
+
+      if (keeper) {
+        // Si el que queda es manual, prevalece: no lo pisamos
+        if (keeper.row[3] === "manual") continue;
+        const removedBefore = toDelete.filter((d) => d.sheetRow < keeper.sheetRow).length;
+        const sheetRow = keeper.sheetRow - removedBefore;
+        await sheets.update(`TasasCambio!C${sheetRow}:F${sheetRow}`, [[rate, "auto", today, now]]);
         updated++;
       } else {
-        await sheets.append("TasasCambio", [baseCurrency, target, copRates[target as "USD" | "EUR"], "auto", today, now]);
+        await sheets.append("TasasCambio", [baseCurrency, target, rate, "auto", today, now]);
         appended++;
       }
     }
 
-    return NextResponse.json({ success: true, updated, appended });
+    return NextResponse.json({ success: true, updated, appended, deleted });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

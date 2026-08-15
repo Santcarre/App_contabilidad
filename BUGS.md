@@ -45,6 +45,12 @@
 - [x] S6-07 (E2E): los E2E usan servidor de producción (build + start) porque el dev server compila por demanda y el navegador podía recibir un chunk a medias ("Invalid or unexpected token") en la 1ª carga de cada ruta (14/08)
 - [x] Lint roto: eslint.config.mjs usaba `eslint/config` (API de ESLint 9) con ESLint 8.57 instalado → `next lint` caía en prompt interactivo. Migrado a `.eslintrc.json` (next/core-web-vitals, next 14.2) + comillas escapadas en Configuración (14/08)
 - [x] S6-08: workflow CI en `.github/workflows/ci.yml` (typecheck + lint + vitest, E2E Playwright con upload de report en fallo) + Lighthouse CI con `lighthouserc.js` (budgets Perf > 90, A11y > 95; sesión forjada por cookie para auditar páginas autenticadas) (14/08)
+- [x] CRÍTICO monedas: gasto/ingreso en moneda distinta a la base no se registraba en el dashboard (amountBase NaN/vacío → 0 en reportes). Causa raíz (14/08):
+  1. Frankfurter.dev/ECB **no publica COP** → el auto-refresh escribía NaN en `TasasCambio` SIEMPRE (celda vacía).
+  2. `getCopRates` devolvía la tasa **invertida** (unidades por 1 COP) mientras toda la conversión multiplica `monto × tasa` (COP por unidad) → incluso con tasa válida el monto era 4.000× menor.
+  3. `getRate` caía a **1.0** silencioso sin tasa (p.ej. MXN nunca se fetcheaba: solo USD/EUR).
+  4. PATCH concurrente (cron + auto-refresh de Configuración) duplicaba filas.
+  Fix: proveedor → open.er-api.com (166 monedas, COP incluido), `getCopRates` corregido + validado (`isFinite`), `getRate` lanza error claro ("Actualiza las tasas en Configuración"), PATCH valida/dedupe filas corruptas, POST manual valida `isFinite`, columna **Moneda** en transacciones (desktop + card móvil), aviso ámbar en el formulario si falta la tasa. Datos corruptos de la hoja real eliminados (transacción USD rota + filas de tasas vacías).
 
 ## Diferidos (backlog)
 - **Recurrentes (Sprint 5)**: aplicar en el formulario el mismo patrón que transacciones — MoneyInput (monto formateado) y Combobox con búsqueda para Categoría y Fuente (26/01)

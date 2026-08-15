@@ -3,6 +3,7 @@ import {
   convert,
   formatCurrency,
   formatMoneyDisplay,
+  getCopRates,
   getCurrencyInfo,
   getLatestRate,
   getRate,
@@ -33,7 +34,7 @@ describe("convert", () => {
   });
 });
 
-describe("getRate: prioridad manual > auto día > último conocido > 1.0", () => {
+describe("getRate: prioridad manual > auto día > último conocido > error claro", () => {
   const base = "COP";
   const manual: ExchangeRate[] = [
     rate({ targetCurrency: "USD", rate: 3900, source: "manual", date: "2026-01-10" }),
@@ -57,8 +58,33 @@ describe("getRate: prioridad manual > auto día > último conocido > 1.0", () =>
     expect(getRate(base, "USD", "2026-01-09", [], auto)).toBe(4050);
   });
 
-  it("cae a 1.0 si no hay ninguna tasa", () => {
-    expect(getRate(base, "EUR", "2026-01-10", [], [])).toBe(1.0);
+  it("lanza error claro si no hay ninguna tasa (antes caía a 1.0 corrupto)", () => {
+    expect(() => getRate(base, "EUR", "2026-01-10", [], [])).toThrow(/No hay tasa de cambio para EUR/);
+  });
+});
+
+describe("getCopRates: tasa COP por unidad, para TODAS las monedas", () => {
+  it("convierte tasas base EUR a COP por unidad (1 USD = 4.200 COP)", () => {
+    const rates = getCopRates({ COP: 4600, USD: 1.0952, EUR: 1, MXN: 19.5 });
+    expect(rates.USD).toBeCloseTo(4600 / 1.0952, 4);
+    expect(rates.EUR).toBeCloseTo(4600, 4);
+    expect(rates.COP).toBe(1);
+  });
+
+  it("incluye monedas no USD/EUR (MXN, GBP, JPY...)", () => {
+    const rates = getCopRates({ COP: 4600, USD: 1.1, MXN: 19.5, GBP: 0.85 });
+    expect(rates.MXN).toBeCloseTo(4600 / 19.5, 4);
+    expect(rates.GBP).toBeCloseTo(4600 / 0.85, 4);
+  });
+
+  it("lanza si Frankfurter no trae la tasa de COP (nunca NaN)", () => {
+    expect(() => getCopRates({ USD: 1.1, EUR: 1 })).toThrow();
+  });
+
+  it("ignora monedas con tasa no finita", () => {
+    const rates = getCopRates({ COP: 4600, USD: NaN, EUR: 1 });
+    expect(rates.USD).toBeUndefined();
+    expect(rates.EUR).toBe(4600);
   });
 });
 

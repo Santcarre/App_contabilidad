@@ -193,8 +193,9 @@ export default function ConfiguracionPage() {
             <CardContent>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Las tasas se actualizan automáticamente cada día a las 6 AM UTC desde Frankfurter.dev.
-                  Puedes sobrescribir manualmente cualquier tasa (prioridad sobre la automática).
+                  Las tasas se actualizan automáticamente cada día a las 6 AM UTC desde open.er-api.com.
+                  La tasa indica el valor de <span className="font-medium">1 unidad de esa moneda en {currencyBase}</span>{" "}
+                  (ej: 1 USD = 4.200 {currencyBase}). Puedes sobrescribir manualmente cualquier tasa (prioridad sobre la automática).
                 </p>
                 {loadingRates ? (
                   <p className="py-8 text-center text-muted-foreground">Cargando tasas...</p>
@@ -203,7 +204,7 @@ export default function ConfiguracionPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Moneda</TableHead>
-                        <TableHead>1 {currencyBase} =</TableHead>
+                        <TableHead>1 unidad en {currencyBase}</TableHead>
                         <TableHead>Fuente</TableHead>
                         <TableHead>Fecha</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
@@ -228,7 +229,7 @@ export default function ConfiguracionPage() {
                               <TableCell>
                                 <Input
                                   type="number"
-                                  step="0.000001"
+                                  step="0.01"
                                   min="0"
                                   value={rateInputs[code] ?? ""}
                                   onChange={(e) => handleRateInput(code, e.target.value)}

@@ -159,6 +159,11 @@ function NuevaTransaccionForm() {
                   <span className="font-medium">{formatCurrency(previewBase, currencyBase)}</span> en {currencyBase}
                 </p>
               )}
+              {formData.currency !== currencyBase && rate === undefined && (
+                <p className="text-xs text-amber-600 pl-9">
+                  No hay tasa de cambio para {formData.currency}. Actualízala en Configuración antes de guardar.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

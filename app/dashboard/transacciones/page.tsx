@@ -171,6 +171,9 @@ export default function TransaccionesPage() {
                       </div>
                       <p className="font-mono tabular-nums font-medium">
                         {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
+                        <span className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium align-middle ${tx.currencyOriginal === tx.currencyBase ? "bg-gray-100 text-gray-700" : "bg-blue-100 text-blue-800"}`}>
+                          {tx.currencyOriginal}
+                        </span>
                         {tx.currencyOriginal !== tx.currencyBase && (
                           <span className="ml-2 text-xs text-muted-foreground">
                             ({formatCurrency(tx.amountBase, tx.currencyBase)})
@@ -208,6 +211,7 @@ export default function TransaccionesPage() {
                       { key: "date", label: "Fecha" },
                       { key: "type", label: "Tipo" },
                       { key: "amountOriginal", label: "Monto" },
+                      { key: "currencyOriginal", label: "Moneda" },
                       { key: "categoryName", label: "Categoría" },
                       { key: "sourceName", label: "Medio de pago" },
                       { key: "note", label: "Nota" },
@@ -227,13 +231,13 @@ export default function TransaccionesPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         Cargando transacciones...
                       </TableCell>
                     </TableRow>
                   ) : sortedTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         {isFetching ? "Actualizando..." : "No hay transacciones para mostrar"}
                       </TableCell>
                     </TableRow>
@@ -253,6 +257,11 @@ export default function TransaccionesPage() {
                               ({formatCurrency(tx.amountBase, tx.currencyBase)})
                             </span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tx.currencyOriginal === tx.currencyBase ? "bg-gray-100 text-gray-700" : "bg-blue-100 text-blue-800"}`}>
+                            {tx.currencyOriginal}
+                          </span>
                         </TableCell>
                         <TableCell>{tx.categoryName}</TableCell>
                         <TableCell>{tx.sourceName}</TableCell>
