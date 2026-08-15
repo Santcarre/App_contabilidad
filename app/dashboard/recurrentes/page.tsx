@@ -322,11 +322,11 @@ export default function RecurrentesPage() {
                 (recurrents ?? []).map((rec) => (
                   <MobileCard key={rec.id}>
                     <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium truncate">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium flex-1 min-w-0 leading-tight">
                           {rec.type === "gasto" ? "Gasto" : "Ingreso"} recurrente
                         </p>
-                        <span className={rec.active ? "text-green-600 text-xs" : "text-gray-400 text-xs"}>
+                        <span className={`flex-shrink-0 ${rec.active ? "text-green-600 text-xs" : "text-gray-400 text-xs"}`}>
                           {rec.active ? "Activa" : "Pausada"}
                         </span>
                       </div>

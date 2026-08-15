@@ -162,7 +162,7 @@ export default function TransaccionesPage() {
                           {format(new Date(tx.date), "dd/MM/yyyy", { locale: es })}
                         </span>
                         <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium flex-shrink-0 ${
                             tx.type === "gasto" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
                           }`}
                         >
