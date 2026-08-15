@@ -159,6 +159,11 @@ Abrir http://localhost:3000
 > Nota: `trustHost: true` ya está en `auth-options.ts`, así que Auth.js funciona
 > en Vercel sin configuración extra.
 
+> **Importante (Google Cloud Console)**: añade a las *Authorized redirect URIs*
+> del OAuth Client `https://<tu-app>.vercel.app/api/auth/callback/google`
+> (además de `http://localhost:3000/api/auth/callback/google`). Sin esto,
+> el login por Google fallará en producción.
+
 ### Configurar Cron Jobs en Vercel
 
 Los crons se configuran automáticamente via `vercel.json`. Verificar en Vercel Dashboard > Cron Jobs.
