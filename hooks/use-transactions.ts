@@ -16,6 +16,8 @@ export interface Transaction {
   categoryName?: string;
   sourceId: string;
   sourceName?: string;
+  sourceIcon?: string;
+  sourceColor?: string;
   date: string;
   note?: string;
   recurringId?: string;

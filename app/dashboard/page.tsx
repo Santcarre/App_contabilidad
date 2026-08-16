@@ -9,6 +9,7 @@ import { useReport } from "@/hooks/use-reports";
 import { useTransactions } from "@/hooks/use-transactions";
 import { getCurrentMonth, formatCurrency } from "@/lib/utils";
 import { formatDate } from "@/lib/currency";
+import { CategoryIcon } from "@/components/ui/icon-picker";
 import type { Period } from "@/lib/reports";
 
 function pctChange(current: number, prev: number): number | null {
@@ -182,6 +183,11 @@ export default function DashboardPage() {
                     >
                       {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                     </span>
+                    {tx.sourceIcon && (
+                      <span className="rounded-md bg-muted p-1.5" title={tx.sourceName}>
+                        <CategoryIcon name={tx.sourceIcon} color={tx.sourceColor} className="h-4 w-4" />
+                      </span>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{tx.note || tx.categoryName || "Sin descripción"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -190,7 +196,7 @@ export default function DashboardPage() {
                     </div>
                     <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
                       {isIncome ? "+" : "−"}
-                      {formatCurrency(tx.amountBase, tx.currencyBase)}
+                      {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
                     </p>
                   </li>
                 );

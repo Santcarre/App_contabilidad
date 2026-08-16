@@ -135,15 +135,22 @@ export async function GET(request: NextRequest) {
     const total = transactions.length;
     transactions = transactions.slice(offset, offset + limit);
 
-    // Enrich with category/source names
+    // Enrich with category/source names + source icon/color
     const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
-    const srcMap = Object.fromEntries(sources.map((s) => [s.id, s.name]));
+    const srcMap = Object.fromEntries(
+      sources.map((s) => [s.id, { name: s.name, icon: s.icon, color: s.color }])
+    );
 
-    const enriched = transactions.map((t) => ({
-      ...t,
-      categoryName: catMap[t.categoryId] || "Desconocida",
-      sourceName: srcMap[t.sourceId] || "Desconocida",
-    }));
+    const enriched = transactions.map((t) => {
+      const src = srcMap[t.sourceId];
+      return {
+        ...t,
+        categoryName: catMap[t.categoryId] || "Desconocida",
+        sourceName: src?.name || "Desconocida",
+        sourceIcon: src?.icon,
+        sourceColor: src?.color,
+      };
+    });
 
     return NextResponse.json({ transactions: enriched, total, limit, offset });
   } catch (error: any) {
