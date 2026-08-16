@@ -7,6 +7,8 @@ import {
   buildFullTrend,
   buildSourceBreakdown,
   summarizeWithPrev,
+  summarizeWithPrevPeriod,
+  type Period,
   type ReportTransaction,
 } from "@/lib/reports";
 import { convertAmountToBase, parseStoredRate, type RateRow } from "@/lib/currency";
@@ -31,6 +33,12 @@ export async function GET(request: NextRequest) {
     const month = request.nextUrl.searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
     const typeParam = request.nextUrl.searchParams.get("type");
     const type = typeParam === "ingreso" ? "ingreso" : "gasto";
+
+    const periodParam = request.nextUrl.searchParams.get("period");
+    const period: Period = periodParam === "day" || periodParam === "week" ? periodParam : "month";
+    const dateParam = request.nextUrl.searchParams.get("date");
+    const today = new Date().toISOString().slice(0, 10);
+    const date = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;
 
     if (!/^\d{4}-\d{2}$/.test(month)) {
       return NextResponse.json({ error: "month debe ser YYYY-MM" }, { status: 400 });
@@ -99,7 +107,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const summary = summarizeWithPrev(transactions, month);
+    const summary =
+      period === "month" ? summarizeWithPrev(transactions, month) : summarizeWithPrevPeriod(transactions, period, date);
     const trend = buildFullTrend(transactions, month);
     const categoryBreakdown = buildCategoryBreakdown(transactions, month, type);
     const sourceBreakdown = buildSourceBreakdown(transactions, month, "gasto");

@@ -14,6 +14,27 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await page.goto("/dashboard");
     await expect(page.getByText("Ingresos del mes")).toBeVisible();
     await expect(page.getByText(/1\.300\.000/).first()).toBeVisible();
+
+    await page.getByRole("tab", { name: "Día" }).click();
+    await expect(page.getByText("Ingresos de hoy")).toBeVisible();
+    await expect(page.getByText("Gastos de hoy")).toBeVisible();
+
+    await page.getByRole("tab", { name: "Semana" }).click();
+    await expect(page.getByText("Ingresos de la semana")).toBeVisible();
+    await expect(page.getByText("Gastos de la semana")).toBeVisible();
+
+    await page.getByRole("tab", { name: "Mes" }).click();
+    await expect(page.getByText("Ingresos del mes")).toBeVisible();
+  });
+
+  test("dashboard muestra las últimas transacciones", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard");
+    await expect(page.getByText("Últimas transacciones")).toBeVisible();
+    await expect(page.getByText("Supermercado")).toBeVisible();
+    await expect(page.getByText("Nómina")).toBeVisible();
+    await expect(page.getByText("Ver todas")).toBeVisible();
   });
 
   test("crear transacción: formulario válido → toast + redirección", async ({ page }) => {

@@ -213,6 +213,8 @@ Hoja global **Usuarios** (Service Account): email, tokens encriptados, spreadshe
 
 ## Roadmap / Pendiente
 
+- **Tour guiado / tutorial interactivo** del primer uso (recorrido por la app
+  paso a paso al entrar por primera vez).
 - **Drag & drop** para reordenar categorías/fuentes.
 - **Sentry** (monitoreo de errores) y **analytics** (opcional).
 - **Custom domain** en Vercel (opcional).

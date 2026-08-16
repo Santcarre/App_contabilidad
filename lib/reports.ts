@@ -175,3 +175,67 @@ export function buildDailyBalance(transactions: ReportTransaction[], month: stri
   }
   return points;
 }
+
+export type Period = "day" | "week" | "month";
+
+function formatDate2(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function shiftDate(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return formatDate2(new Date(y, m - 1, d + days));
+}
+
+/** Rango inclusivo [start, end] del período; la semana empieza en lunes (ISO). */
+export function periodRange(period: Period, dateStr: string): { start: string; end: string } {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (period === "day") return { start: dateStr, end: dateStr };
+  if (period === "week") {
+    const weekday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+    return {
+      start: formatDate2(new Date(y, m - 1, d - weekday)),
+      end: formatDate2(new Date(y, m - 1, d - weekday + 6)),
+    };
+  }
+  return {
+    start: formatDate2(new Date(y, m - 1, 1)),
+    end: formatDate2(new Date(y, m, 0)),
+  };
+}
+
+/** Fecha del período anterior equivalente (misma posición dentro del período). */
+export function previousPeriodDate(period: Period, dateStr: string): string {
+  if (period === "day") return shiftDate(dateStr, -1);
+  if (period === "week") return shiftDate(dateStr, -7);
+  const [y, m] = dateStr.split("-").map(Number);
+  const prev = new Date(y, m - 2, 1);
+  return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+export function summarizeRange(
+  transactions: ReportTransaction[],
+  start: string,
+  end: string
+): { income: number; expense: number; balance: number } {
+  let income = 0;
+  let expense = 0;
+  for (const tx of transactions) {
+    if (tx.date < start || tx.date > end) continue;
+    if (tx.type === "ingreso") income += tx.amountBase;
+    else expense += tx.amountBase;
+  }
+  return { income: round2(income), expense: round2(expense), balance: round2(income - expense) };
+}
+
+export function summarizeWithPrevPeriod(
+  transactions: ReportTransaction[],
+  period: Period,
+  dateStr: string
+): MonthSummary {
+  const range = periodRange(period, dateStr);
+  const current = summarizeRange(transactions, range.start, range.end);
+  const prevRange = periodRange(period, previousPeriodDate(period, dateStr));
+  const prev = summarizeRange(transactions, prevRange.start, prevRange.end);
+  return { ...current, prevIncome: prev.income, prevExpense: prev.expense, prevBalance: prev.balance };
+}

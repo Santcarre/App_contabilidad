@@ -19,11 +19,24 @@ async function request(path: string): Promise<any> {
   return data;
 }
 
-export function useReport(month: string, type: "gasto" | "ingreso") {
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+export function useReport(
+  month: string,
+  type: "gasto" | "ingreso",
+  period: "day" | "week" | "month" = "month",
+  date?: string
+) {
+  const dateParam = period === "month" ? month : date ?? localToday();
   return useQuery({
-    queryKey: ["reports", month, type],
+    queryKey: ["reports", period, dateParam, type],
     queryFn: async () => {
-      const data = await request(`/api/reportes?month=${month}&type=${type}`);
+      const params = new URLSearchParams({ month, type, period });
+      if (period !== "month") params.set("date", dateParam);
+      const data = await request(`/api/reportes?${params.toString()}`);
       return data as ReportData;
     },
   });
