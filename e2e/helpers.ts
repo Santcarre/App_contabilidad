@@ -116,18 +116,19 @@ export function mockApi(page: Page) {
     if (path === "/api/billeteras") {
       return json({
         currencyBase: "COP",
+        today: "2026-08-15",
         wallets: [
           {
             id: FUENTES[0].id, name: "Efectivo", type: "efectivo", icon: "wallet", color: "amber-500",
-            initialBalance: 100000, income: 2500000, expense: 1200000, balance: 1400000,
+            startOfDay: 100000, dayIncome: 1000000, dayExpense: 50000, balance: 1050000,
             transactions: [
-              { id: "t1", type: "gasto", amountOriginal: 50000, currencyOriginal: "COP", amountBase: 50000, date: "2026-08-10", sourceId: FUENTES[0].id, categoryName: "Mercado", note: "Supermercado" },
-              { id: "t2", type: "ingreso", amountOriginal: 2500000, currencyOriginal: "COP", amountBase: 2500000, date: "2026-08-01", sourceId: FUENTES[0].id, categoryName: "Salario", note: "Nómina" },
+              { id: "t1", type: "gasto", amountOriginal: 50000, currencyOriginal: "COP", amountBase: 50000, date: "2026-08-15", sourceId: FUENTES[0].id, categoryName: "Mercado", note: "Supermercado" },
+              { id: "t2", type: "ingreso", amountOriginal: 1000000, currencyOriginal: "COP", amountBase: 1000000, date: "2026-08-15", sourceId: FUENTES[0].id, categoryName: "Freelance", note: "Pago proyecto" },
             ],
           },
           {
             id: FUENTES[1].id, name: "Bancolombia", type: "banco", icon: "building-2", color: "blue-500",
-            initialBalance: 0, income: 0, expense: 0, balance: 0, transactions: [],
+            startOfDay: 0, dayIncome: 0, dayExpense: 0, balance: 0, transactions: [],
           },
         ],
       });

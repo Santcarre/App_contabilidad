@@ -43,23 +43,23 @@ function WalletCard({ wallet, currency, onOpen }: { wallet: Wallet; currency: st
         <div className="min-w-0">
           <p className="flex items-center gap-1 text-muted-foreground">
             <Landmark className="h-3 w-3" />
-            Inicial
+            Inicio del día
           </p>
-          <p className="mt-0.5 font-mono tabular-nums">{formatCurrency(wallet.initialBalance, currency)}</p>
+          <p className="mt-0.5 font-mono tabular-nums">{formatCurrency(wallet.startOfDay, currency)}</p>
         </div>
         <div className="min-w-0">
           <p className="flex items-center gap-1 text-muted-foreground">
             <TrendingUp className="h-3 w-3" />
-            Ingresos
+            Hoy +
           </p>
-          <p className="mt-0.5 font-mono tabular-nums text-green-600">+{formatCurrency(wallet.income, currency)}</p>
+          <p className="mt-0.5 font-mono tabular-nums text-green-600">+{formatCurrency(wallet.dayIncome, currency)}</p>
         </div>
         <div className="min-w-0">
           <p className="flex items-center gap-1 text-muted-foreground">
             <TrendingDown className="h-3 w-3" />
-            Gastos
+            Hoy −
           </p>
-          <p className="mt-0.5 font-mono tabular-nums text-red-600">−{formatCurrency(wallet.expense, currency)}</p>
+          <p className="mt-0.5 font-mono tabular-nums text-red-600">−{formatCurrency(wallet.dayExpense, currency)}</p>
         </div>
       </div>
     </button>
@@ -69,10 +69,12 @@ function WalletCard({ wallet, currency, onOpen }: { wallet: Wallet; currency: st
 function MovementsDialog({
   wallet,
   currency,
+  today,
   onClose,
 }: {
   wallet: Wallet | null;
   currency: string;
+  today: string;
   onClose: () => void;
 }) {
   return (
@@ -84,13 +86,35 @@ function MovementsDialog({
         {wallet && (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Saldo actual</p>
-              <p className={`font-mono text-2xl font-bold tabular-nums ${wallet.balance < 0 ? "text-red-600" : ""}`}>
-                {formatCurrency(wallet.balance, currency)}
-              </p>
+              <p className="text-xs text-muted-foreground">Movimientos de hoy · {formatDate(today)}</p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Inicio del día</p>
+                  <p className="font-mono text-sm font-semibold tabular-nums">
+                    {formatCurrency(wallet.startOfDay, currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Variación</p>
+                  <p className={`font-mono text-sm font-semibold tabular-nums ${
+                    wallet.dayIncome - wallet.dayExpense < 0 ? "text-red-600" : "text-green-600"
+                  }`}>
+                    {wallet.dayIncome - wallet.dayExpense >= 0 ? "+" : "−"}
+                    {formatCurrency(Math.abs(wallet.dayIncome - wallet.dayExpense), currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Saldo actual</p>
+                  <p className={`font-mono text-sm font-semibold tabular-nums ${
+                    wallet.balance < 0 ? "text-red-600" : ""
+                  }`}>
+                    {formatCurrency(wallet.balance, currency)}
+                  </p>
+                </div>
+              </div>
             </div>
             {wallet.transactions.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos en esta billetera</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos hoy</p>
             ) : (
               <ul className="space-y-2">
                 {wallet.transactions.map((tx) => {
@@ -127,6 +151,7 @@ export default function BilleterasPage() {
   const [selected, setSelected] = useState<Wallet | null>(null);
 
   const currency = data?.currencyBase ?? "COP";
+  const today = data?.today ?? "";
   const wallets = data?.wallets ?? [];
   const total = wallets.reduce((acc, w) => acc + w.balance, 0);
 
@@ -146,19 +171,17 @@ export default function BilleterasPage() {
       </div>
 
       <div className="rounded-xl bg-gradient-to-br from-primary via-primary/80 to-primary/60 p-6 text-primary-foreground shadow-md">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="flex items-center gap-2 text-sm opacity-90">
-              <WalletIcon className="h-4 w-4" />
-              Saldo total
-            </p>
-            <p className="mt-2 font-mono text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">
-              {isLoading ? "—" : formatCurrency(total, currency)}
-            </p>
-            <p className="mt-1 text-xs opacity-80">
-              {wallets.length} billetera{wallets.length === 1 ? "" : "s"} · saldo inicial + ingresos − gastos
-            </p>
-          </div>
+        <div>
+          <p className="flex items-center gap-2 text-sm opacity-90">
+            <WalletIcon className="h-4 w-4" />
+            Saldo total
+          </p>
+          <p className="mt-2 font-mono text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">
+            {isLoading ? "—" : formatCurrency(total, currency)}
+          </p>
+          <p className="mt-1 text-xs opacity-80">
+            {wallets.length} billetera{wallets.length === 1 ? "" : "s"} · inicio del día + movimientos de hoy
+          </p>
         </div>
       </div>
 
@@ -183,7 +206,7 @@ export default function BilleterasPage() {
         </div>
       )}
 
-      <MovementsDialog wallet={selected} currency={currency} onClose={() => setSelected(null)} />
+      <MovementsDialog wallet={selected} currency={currency} today={today} onClose={() => setSelected(null)} />
     </div>
   );
 }

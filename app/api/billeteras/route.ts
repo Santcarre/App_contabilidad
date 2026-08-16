@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { computeWallets, type WalletSource, type WalletTransaction } from "@/lib/wallets";
 import { parseStoredRate, type RateRow } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
+
+function serverToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
 
 function getConfigFromRows(res: any[][]): Record<string, any> {
   const config: Record<string, any> = {};
@@ -19,8 +24,12 @@ function getConfigFromRows(res: any[][]): Record<string, any> {
   return config;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // El cliente envía su fecha local para que el "día" respete su zona horaria.
+    const todayParam = request.nextUrl.searchParams.get("today");
+    const today = todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam) ? todayParam : serverToday();
+
     const spreadsheetId = await getSpreadsheetId();
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
@@ -81,8 +90,8 @@ export async function GET() {
         note: r[9] || undefined,
       }));
 
-    const wallets = computeWallets(sources, transactions, currencyBase, rateRows);
-    return NextResponse.json({ wallets, currencyBase });
+    const wallets = computeWallets(sources, transactions, currencyBase, rateRows, today);
+    return NextResponse.json({ wallets, currencyBase, today });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

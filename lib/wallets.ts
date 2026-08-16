@@ -29,25 +29,32 @@ export interface Wallet {
   type: string;
   icon: string;
   color: string;
-  initialBalance: number;
-  income: number;
-  expense: number;
+  /** Saldo con el que la billetera arrancó el día `today` (creación + movimientos de días anteriores). */
+  startOfDay: number;
+  /** Suma de ingresos del día `today`. */
+  dayIncome: number;
+  /** Suma de gastos del día `today`. */
+  dayExpense: number;
+  /** Saldo actual = startOfDay + dayIncome - dayExpense. */
   balance: number;
+  /** Movimientos del día `today` ordenados por fecha desc. */
   transactions: WalletTransaction[];
 }
 
 /**
- * Saldo por billetera: saldoInicial + Σ ingresos − Σ gastos, todo convertido
- * a la moneda base con las tasas de la fecha de cada transacción. Solo
- * fuentes activas; cada billetera incluye sus últimos `maxTransactions`
- * movimientos ordenados por fecha desc.
+ * Saldo diario por billetera: el inicio del día acumula todos los movimientos
+ * anteriores a `today`, la variación de hoy solo los del día actual, y el saldo
+ * actual es la suma de ambos. Todo convertido a la moneda base con las tasas de
+ * la fecha de cada transacción. Solo fuentes activas; las transacciones con
+ * fecha futura (> today) no cuentan hasta que llegue su día.
  */
 export function computeWallets(
   sources: WalletSource[],
   transactions: WalletTransaction[],
   currencyBase: string,
   rateRows: RateRow[],
-  maxTransactions = 10
+  today: string,
+  maxTransactions = 100
 ): Wallet[] {
   const bySource = new Map<string, WalletTransaction[]>();
   for (const tx of transactions) {
@@ -60,19 +67,28 @@ export function computeWallets(
   for (const src of sources) {
     if (!src.active) continue;
 
-    const converted = (bySource.get(src.id) ?? []).map((tx) => ({
-      ...tx,
-      amountBase: convertAmountToBase(tx.amountOriginal, tx.currencyOriginal, currencyBase, tx.date, rateRows),
-    }));
+    const converted = (bySource.get(src.id) ?? [])
+      .filter((tx) => tx.date <= today)
+      .map((tx) => ({
+        ...tx,
+        amountBase: convertAmountToBase(tx.amountOriginal, tx.currencyOriginal, currencyBase, tx.date, rateRows),
+      }));
 
-    let income = 0;
-    let expense = 0;
+    let previous = 0;
+    let dayIncome = 0;
+    let dayExpense = 0;
     for (const tx of converted) {
-      if (tx.type === "ingreso") income += tx.amountBase;
-      else expense += tx.amountBase;
+      const signed = tx.type === "ingreso" ? tx.amountBase : -tx.amountBase;
+      if (tx.date < today) previous += signed;
+      else {
+        if (tx.type === "ingreso") dayIncome += tx.amountBase;
+        else dayExpense += tx.amountBase;
+      }
     }
 
-    const recent = [...converted]
+    const startOfDay = src.initialBalance + previous;
+    const todayTxs = converted
+      .filter((tx) => tx.date === today)
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, maxTransactions);
 
@@ -82,11 +98,11 @@ export function computeWallets(
       type: src.type,
       icon: src.icon,
       color: src.color,
-      initialBalance: src.initialBalance,
-      income: round2(income),
-      expense: round2(expense),
-      balance: round2(src.initialBalance + income - expense),
-      transactions: recent,
+      startOfDay: round2(startOfDay),
+      dayIncome: round2(dayIncome),
+      dayExpense: round2(dayExpense),
+      balance: round2(startOfDay + dayIncome - dayExpense),
+      transactions: todayTxs,
     });
   }
 
