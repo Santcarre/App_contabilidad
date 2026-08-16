@@ -35,6 +35,7 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await expect(page.getByText("Supermercado")).toBeVisible();
     await expect(page.getByText("Nómina")).toBeVisible();
     await expect(page.getByText("Ver todas")).toBeVisible();
+    await expect(page.getByText("COP", { exact: true }).first()).toBeVisible();
   });
 
   test("crear transacción: formulario válido → toast + redirección", async ({ page }) => {

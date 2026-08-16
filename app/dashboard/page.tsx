@@ -194,10 +194,15 @@ export default function DashboardPage() {
                         {formatDate(tx.date)} · {tx.sourceName || "Sin fuente"}
                       </p>
                     </div>
-                    <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
-                      {isIncome ? "+" : "−"}
-                      {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
+                        {isIncome ? "+" : "−"}
+                        {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
+                      </p>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {tx.currencyOriginal}
+                      </span>
+                    </div>
                   </li>
                 );
               })}
