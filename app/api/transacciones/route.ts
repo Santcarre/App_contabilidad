@@ -3,6 +3,7 @@ import { SheetsClient } from "@/lib/google-sheets";
 import { transactionSchema } from "@/lib/validation";
 import { getRate, convertAmountToBase, parseStoredRate } from "@/lib/currency";
 import { ExchangeRate } from "@/lib/currency";
+import { sortTransactionsDesc } from "@/lib/transactions";
 import { NextRequest, NextResponse } from "next/server";
 
 async function getConfigFromSheet(sheets: SheetsClient): Promise<any> {
@@ -127,8 +128,8 @@ export async function GET(request: NextRequest) {
     if (categoryId) transactions = transactions.filter((t) => t.categoryId === categoryId);
     if (sourceId) transactions = transactions.filter((t) => t.sourceId === sourceId);
 
-    // Sort by date desc
-    transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Sort by date desc (ties: createdAt desc — mismo día, el más reciente arriba)
+    transactions = sortTransactionsDesc(transactions);
 
     // Paginate
     const total = transactions.length;
