@@ -28,7 +28,7 @@ import {
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Inicio", href: "/dashboard", icon: LayoutDashboard },
   { name: "Transacciones", href: "/dashboard/transacciones", icon: CreditCard },
   { name: "Categorías", href: "/dashboard/categorias", icon: Tags },
   { name: "Medio de Pago", href: "/dashboard/fuentes", icon: Wallet },

@@ -95,7 +95,7 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     // switchUser hace window.location.href = "/dashboard" (reload completo:
     // el toast se pierde en el reload, se valida el resultado por la URL)
     await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible();
 
     // Cerrar sesión real
     await avatarTrigger.click();
