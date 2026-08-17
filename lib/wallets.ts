@@ -1,5 +1,5 @@
 import { convertAmountToBase, type RateRow } from "./currency";
-import { round2 } from "./reports";
+import { round2, periodRange } from "./reports";
 
 export interface WalletSource {
   id: string;
@@ -37,7 +37,7 @@ export interface Wallet {
   dayExpense: number;
   /** Saldo actual = startOfDay + dayIncome - dayExpense. */
   balance: number;
-  /** Movimientos del mes en curso hasta `today` ordenados por fecha desc. */
+  /** Movimientos de la semana en curso (lunes-domingo) hasta `today`, ordenados por fecha desc. */
   transactions: WalletTransaction[];
 }
 
@@ -87,9 +87,9 @@ export function computeWallets(
     }
 
     const startOfDay = src.initialBalance + previous;
-    const monthStart = today.slice(0, 7) + "-01";
-    const monthTxs = converted
-      .filter((tx) => tx.date >= monthStart)
+    const weekStart = periodRange("week", today).start;
+    const weekTxs = converted
+      .filter((tx) => tx.date >= weekStart)
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, maxTransactions);
 
@@ -103,7 +103,7 @@ export function computeWallets(
       dayIncome: round2(dayIncome),
       dayExpense: round2(dayExpense),
       balance: round2(startOfDay + dayIncome - dayExpense),
-      transactions: monthTxs,
+      transactions: weekTxs,
     });
   }
 

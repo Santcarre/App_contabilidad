@@ -23,10 +23,9 @@ test.describe("billeteras", () => {
     await expect(dialog.getByText(/Resumen del día/)).toBeVisible();
     await expect(dialog.getByRole("heading", { name: /Hoy/ })).toBeVisible();
     await expect(dialog.getByRole("heading", { name: /Esta semana/ })).toBeVisible();
-    await expect(dialog.getByRole("heading", { name: /Este mes/ })).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: /Este mes/ })).toHaveCount(0);
     await expect(dialog.getByText("Supermercado")).toBeVisible();
     await expect(dialog.getByText("Domicilio")).toBeVisible();
-    await expect(dialog.getByText("Mercado mensual")).toBeVisible();
     await expect(dialog.getByRole("link", { name: "Transacciones" })).toBeVisible();
 
     await page.getByRole("button", { name: /Cerrar/ }).click();

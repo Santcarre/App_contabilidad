@@ -100,13 +100,11 @@ function MovementsDialog({
   onClose: () => void;
 }) {
   const weekStart = today ? periodRange("week", today).start : "";
-  const monthStart = today ? today.slice(0, 7) + "-01" : "";
 
   const sections = wallet
     ? [
         { label: "Hoy", items: wallet.transactions.filter((t) => t.date === today) },
         { label: "Esta semana", items: wallet.transactions.filter((t) => t.date >= weekStart && t.date < today) },
-        { label: "Este mes", items: wallet.transactions.filter((t) => t.date >= monthStart && t.date < weekStart) },
       ]
     : [];
 
@@ -116,7 +114,7 @@ function MovementsDialog({
         <DialogHeader>
           <DialogTitle>Movimientos — {wallet?.name}</DialogTitle>
           <p className="text-xs text-muted-foreground">
-            Último día, semana y mes. Para ver otras transacciones, revisa{" "}
+            Hoy y esta semana. Para ver el resto, revisa{" "}
             <Link href="/dashboard/transacciones" className="text-primary hover:underline">
               Transacciones
             </Link>
@@ -154,7 +152,7 @@ function MovementsDialog({
               </div>
             </div>
             {sections.every((s) => s.items.length === 0) ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos en el último mes</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos esta semana</p>
             ) : (
               <div className="space-y-5">
                 {sections.map((section) =>
