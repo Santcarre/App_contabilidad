@@ -106,16 +106,30 @@ describe("computeWallets", () => {
     expect(wallets[0].transactions).toEqual([]);
   });
 
-  it("solo incluye movimientos del día actual, limitados y ordenados", () => {
+  it("incluye movimientos del mes en curso (hasta hoy), limitados y ordenados", () => {
     const txs = [
-      ...Array.from({ length: 12 }, (_, i) =>
-        tx({ id: `today-${i}`, date: TODAY })
-      ),
-      tx({ id: "anterior", date: "2026-08-01" }),
+      ...Array.from({ length: 12 }, (_, i) => tx({ id: `today-${i}`, date: TODAY })),
+      tx({ id: "inicio-mes", date: "2026-08-01" }),
     ];
     const wallets = computeWallets([source()], txs, "COP", [], TODAY, 10);
     expect(wallets[0].transactions).toHaveLength(10);
     expect(wallets[0].transactions.every((t) => t.date === TODAY)).toBe(true);
+  });
+
+  it("excluye de los movimientos las transacciones de meses anteriores y futuras", () => {
+    const wallets = computeWallets(
+      [source()],
+      [
+        tx({ id: "hoy", date: TODAY }),
+        tx({ id: "inicio-mes", date: "2026-08-01" }),
+        tx({ id: "mes-pasado", date: "2026-07-31" }),
+        tx({ id: "futura", date: "2026-09-01" }),
+      ],
+      "COP",
+      [],
+      TODAY
+    );
+    expect(wallets[0].transactions.map((t) => t.id).sort()).toEqual(["hoy", "inicio-mes"]);
   });
 
   it("sin tasas para la conversión mantiene el monto original (fallback)", () => {

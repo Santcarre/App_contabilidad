@@ -124,6 +124,8 @@ export function mockApi(page: Page) {
             transactions: [
               { id: "t1", type: "gasto", amountOriginal: 50000, currencyOriginal: "COP", amountBase: 50000, date: "2026-08-15", sourceId: FUENTES[0].id, categoryName: "Mercado", note: "Supermercado" },
               { id: "t2", type: "ingreso", amountOriginal: 1000000, currencyOriginal: "COP", amountBase: 1000000, date: "2026-08-15", sourceId: FUENTES[0].id, categoryName: "Freelance", note: "Pago proyecto" },
+              { id: "t3", type: "gasto", amountOriginal: 30000, currencyOriginal: "COP", amountBase: 30000, date: "2026-08-12", sourceId: FUENTES[0].id, categoryName: "Transporte", note: "Domicilio" },
+              { id: "t4", type: "gasto", amountOriginal: 120000, currencyOriginal: "COP", amountBase: 120000, date: "2026-08-05", sourceId: FUENTES[0].id, categoryName: "Mercado", note: "Mercado mensual" },
             ],
           },
           {

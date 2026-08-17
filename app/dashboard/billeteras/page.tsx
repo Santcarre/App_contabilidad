@@ -7,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CategoryIcon } from "@/components/ui/icon-picker";
 import { ArrowDownRight, ArrowUpRight, Landmark, Plus, TrendingDown, TrendingUp, Wallet as WalletIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/currency";
+import { periodRange } from "@/lib/reports";
 import { useBilleteras } from "@/hooks/use-billeteras";
-import type { Wallet } from "@/lib/wallets";
+import type { Wallet, WalletTransaction } from "@/lib/wallets";
 
 function SkeletonCard() {
   return <div className="h-44 animate-pulse rounded-xl bg-muted" />;
@@ -66,6 +67,27 @@ function WalletCard({ wallet, currency, onOpen }: { wallet: Wallet; currency: st
   );
 }
 
+function MovementRow({ tx, currency }: { tx: WalletTransaction; currency: string }) {
+  const isIncome = tx.type === "ingreso";
+  return (
+    <li className="flex items-center gap-3 rounded-lg border p-3">
+      <span
+        className={`rounded-full p-1.5 ${isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+      >
+        {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{tx.note || tx.categoryName || "Sin descripción"}</p>
+        <p className="text-xs text-muted-foreground">{formatDate(tx.date)}</p>
+      </div>
+      <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
+        {isIncome ? "+" : "−"}
+        {formatCurrency(tx.amountBase, currency)}
+      </p>
+    </li>
+  );
+}
+
 function MovementsDialog({
   wallet,
   currency,
@@ -77,16 +99,34 @@ function MovementsDialog({
   today: string;
   onClose: () => void;
 }) {
+  const weekStart = today ? periodRange("week", today).start : "";
+  const monthStart = today ? today.slice(0, 7) + "-01" : "";
+
+  const sections = wallet
+    ? [
+        { label: "Hoy", items: wallet.transactions.filter((t) => t.date === today) },
+        { label: "Esta semana", items: wallet.transactions.filter((t) => t.date >= weekStart && t.date < today) },
+        { label: "Este mes", items: wallet.transactions.filter((t) => t.date >= monthStart && t.date < weekStart) },
+      ]
+    : [];
+
   return (
     <Dialog open={wallet !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>Movimientos — {wallet?.name}</DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            Último día, semana y mes. Para ver otras transacciones, revisa{" "}
+            <Link href="/dashboard/transacciones" className="text-primary hover:underline">
+              Transacciones
+            </Link>
+            .
+          </p>
         </DialogHeader>
         {wallet && (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted p-4">
-              <p className="text-xs text-muted-foreground">Movimientos de hoy · {formatDate(today)}</p>
+              <p className="text-xs text-muted-foreground">Resumen del día · {formatDate(today)}</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio del día</p>
@@ -113,31 +153,26 @@ function MovementsDialog({
                 </div>
               </div>
             </div>
-            {wallet.transactions.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos hoy</p>
+            {sections.every((s) => s.items.length === 0) ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos en el último mes</p>
             ) : (
-              <ul className="space-y-2">
-                {wallet.transactions.map((tx) => {
-                  const isIncome = tx.type === "ingreso";
-                  return (
-                    <li key={tx.id} className="flex items-center gap-3 rounded-lg border p-3">
-                      <span
-                        className={`rounded-full p-1.5 ${isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
-                      >
-                        {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{tx.note || tx.categoryName || "Sin descripción"}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(tx.date)}</p>
-                      </div>
-                      <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
-                        {isIncome ? "+" : "−"}
-                        {formatCurrency(tx.amountBase, currency)}
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="space-y-5">
+                {sections.map((section) =>
+                  section.items.length > 0 ? (
+                    <div key={section.label}>
+                      <h3 className="mb-2 text-sm font-semibold">
+                        {section.label}{" "}
+                        <span className="font-normal text-muted-foreground">({section.items.length})</span>
+                      </h3>
+                      <ul className="space-y-2">
+                        {section.items.map((tx) => (
+                          <MovementRow key={tx.id} tx={tx} currency={currency} />
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null
+                )}
+              </div>
             )}
           </div>
         )}

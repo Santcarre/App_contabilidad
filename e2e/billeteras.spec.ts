@@ -18,12 +18,18 @@ test.describe("billeteras", () => {
     await expect(page.getByText("Gestionar medios de pago")).toBeVisible();
 
     await page.getByText("Efectivo", { exact: true }).click();
-    await expect(page.getByText("Movimientos — Efectivo")).toBeVisible();
-    await expect(page.getByText(/Movimientos de hoy/)).toBeVisible();
-    await expect(page.getByText("Supermercado")).toBeVisible();
-    await expect(page.getByText("Pago proyecto")).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Movimientos — Efectivo")).toBeVisible();
+    await expect(dialog.getByText(/Resumen del día/)).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: /Hoy/ })).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: /Esta semana/ })).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: /Este mes/ })).toBeVisible();
+    await expect(dialog.getByText("Supermercado")).toBeVisible();
+    await expect(dialog.getByText("Domicilio")).toBeVisible();
+    await expect(dialog.getByText("Mercado mensual")).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "Transacciones" })).toBeVisible();
 
     await page.getByRole("button", { name: /Cerrar/ }).click();
-    await expect(page.getByText("Movimientos — Efectivo")).toBeHidden();
+    await expect(dialog).toBeHidden();
   });
 });
