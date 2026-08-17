@@ -53,17 +53,19 @@ export function MonthlyTrendChart({
 export function CategoryPieChart({ data, currencyBase }: { data: any[]; currencyBase: string }) {
   return (
     <ResponsiveContainer width="100%" height={380}>
-      <PieChart>
+      <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={110}
+          innerRadius={55}
+          outerRadius={85}
           paddingAngle={2}
           dataKey="total"
           nameKey="name"
-          label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+          isAnimationActive={false}
+          label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
+          labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
         >
           {data.map((c) => (
             <Cell key={c.id} fill={getColorValue(c.color)} />
@@ -79,17 +81,19 @@ export function CategoryPieChart({ data, currencyBase }: { data: any[]; currency
 export function SourcePieChart({ data, currencyBase }: { data: any[]; currencyBase: string }) {
   return (
     <ResponsiveContainer width="100%" height={380}>
-      <PieChart>
+      <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={110}
+          innerRadius={55}
+          outerRadius={85}
           paddingAngle={2}
           dataKey="total"
           nameKey="name"
-          label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+          isAnimationActive={false}
+          label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
+          labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
         >
           {data.map((s) => (
             <Cell key={s.id} fill={getColorValue(s.color)} />

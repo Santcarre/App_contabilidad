@@ -99,3 +99,30 @@ test.describe("móvil (viewport iPhone)", () => {
     await page.getByRole("button", { name: /Cerrar/ }).click();
     await expect(dialog).toBeHidden();
   });
+
+test("reportes: los porcentajes del pie caben dentro del gráfico en móvil", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard/reportes");
+    await page.getByRole("tab", { name: "Categorías" }).tap();
+    await page.waitForTimeout(500);
+    const check = async () => {
+      return page.evaluate(() => {
+        const svgs = Array.from(document.querySelectorAll("svg"));
+        const chart = svgs.map((s) => ({ el: s, r: s.getBoundingClientRect() })).filter((x) => x.r.width > 100).sort((a, b) => b.r.width - a.r.width)[0];
+        if (!chart) return { error: "no chart svg" };
+        const svgRect = chart.r;
+        const labels = Array.from(chart.el.querySelectorAll("text")).filter((t) => t.textContent && t.textContent.trim());
+        if (labels.length === 0) return { error: "sin labels" };
+        const overflows = labels.filter((t) => {
+          const r = t.getBoundingClientRect();
+          return r.left < svgRect.left || r.right > svgRect.right || r.top < svgRect.top || r.bottom > svgRect.bottom;
+        }).map((t) => t.textContent);
+        return { nLabels: labels.length, overflows, svgW: Math.round(svgRect.width) };
+      });
+    };
+    const res = await check();
+    expect(res.error).toBeUndefined();
+    expect(res.overflows).toEqual([]);
+    expect(res.nLabels).toBeGreaterThan(0);
+  });
