@@ -5,6 +5,7 @@ import {
   shiftDate,
   summarizeRange,
   summarizeWithPrevPeriod,
+  buildSourceBreakdown,
   type ReportTransaction,
 } from "@/lib/reports";
 
@@ -113,5 +114,27 @@ describe("summarizeWithPrevPeriod", () => {
     );
     expect(summary.income).toBe(500);
     expect(summary.prevIncome).toBe(300);
+  });
+});
+describe("buildSourceBreakdown", () => {
+  it("usa el color de cada fuente (sin repetir el gris por defecto)", () => {
+    
+    const items = buildSourceBreakdown(
+      [
+        tx({ sourceId: "s1", sourceName: "Efectivo", sourceColor: "amber-500" }),
+        tx({ id: "t2", sourceId: "s2", sourceName: "Nequi", sourceColor: "violet-500", amountBase: 500 }),
+      ],
+      "2026-08",
+      "gasto"
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0].color).toBe("amber-500");
+    expect(items[1].color).toBe("violet-500");
+  });
+
+  it("cae al gris por defecto cuando no hay color de fuente", () => {
+    
+    const items = buildSourceBreakdown([tx({ sourceColor: undefined })], "2026-08", "gasto");
+    expect(items[0].color).toBe("#64748b");
   });
 });

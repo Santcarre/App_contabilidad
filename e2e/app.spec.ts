@@ -85,6 +85,23 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await expect(page.getByText("2 transacciones")).toBeVisible();
   });
 
+  test("detalle de transacción desde la lista: click en la fila abre el diálogo", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard/transacciones");
+    const table = page.locator("table");
+    await table.getByText("Supermercado").click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Supermercado" })).toBeVisible();
+    await expect(dialog.getByText("Monto")).toBeVisible();
+    await expect(dialog.getByText("50.000")).toBeVisible();
+    await expect(dialog.getByText("Gasto", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Mercado", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Efectivo", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: /Cerrar/ }).click();
+    await expect(dialog).toBeHidden();
+  });
+
   test("reportes: tabs, resumen y desglose", async ({ page }) => {
     await loginAs(page);
     await mockApi(page);

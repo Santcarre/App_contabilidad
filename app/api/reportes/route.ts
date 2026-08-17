@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
         categoryColor: cat?.color ?? "#64748b",
         sourceId,
         sourceName: src?.name ?? "Sin fuente",
+        sourceColor: src?.color,
         note: row[9] || undefined,
       };
     });

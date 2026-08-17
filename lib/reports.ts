@@ -10,6 +10,7 @@ export interface ReportTransaction {
   categoryColor: string;
   sourceId: string;
   sourceName: string;
+  sourceColor?: string;
   note?: string;
 }
 
@@ -140,7 +141,7 @@ export function buildSourceBreakdown(transactions: ReportTransaction[], month: s
   let grandTotal = 0;
   for (const tx of transactions) {
     if (!isInMonth(tx.date, month) || tx.type !== type) continue;
-    const entry = totals.get(tx.sourceId) ?? { name: tx.sourceName, color: "#64748b", total: 0, count: 0 };
+    const entry = totals.get(tx.sourceId) ?? { name: tx.sourceName, color: tx.sourceColor || "#64748b", total: 0, count: 0 };
     entry.total += tx.amountBase;
     entry.count += 1;
     totals.set(tx.sourceId, entry);

@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
+import { TransactionDetailsDialog } from "@/components/transaccion-detalle";
 import { Plus, ChevronDown, ChevronUp, Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
-import { useTransactions, useDeleteTransaction } from "@/hooks/use-transactions";
+import { useTransactions, useDeleteTransaction, type Transaction } from "@/hooks/use-transactions";
 
 const PAGE_SIZE = 25;
 
@@ -27,6 +28,7 @@ export default function TransaccionesPage() {
   });
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "date", direction: "desc" });
   const [offset, setOffset] = useState(0);
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   const { data, isLoading, isFetching } = useTransactions({
     startDate: filters.startDate || undefined,
@@ -156,7 +158,12 @@ export default function TransaccionesPage() {
               ) : (
                 sortedTransactions.map((tx) => (
                   <MobileCard key={tx.id}>
-                    <div className="min-w-0 flex-1 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTx(tx)}
+                      className="min-w-0 flex-1 space-y-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
+                      aria-label={`Ver detalles de ${tx.note || tx.categoryName || "la transacción"}`}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(tx.date), "dd/MM/yyyy", { locale: es })}
@@ -184,7 +191,7 @@ export default function TransaccionesPage() {
                         {[tx.categoryName, tx.sourceName].filter(Boolean).join(" · ")}
                       </p>
                       {tx.note && <p className="text-sm text-muted-foreground truncate">{tx.note}</p>}
-                    </div>
+                    </button>
                     <MobileActions>
                       <Link
                         href={`/dashboard/transacciones/${tx.id}/editar`}
@@ -243,7 +250,12 @@ export default function TransaccionesPage() {
                     </TableRow>
                   ) : (
                     sortedTransactions.map((tx) => (
-                      <TableRow key={tx.id}>
+                      <TableRow
+                        key={tx.id}
+                        onClick={() => setSelectedTx(tx)}
+                        className="cursor-pointer"
+                        data-testid="transaction-row"
+                      >
                         <TableCell>{format(new Date(tx.date), "dd/MM/yyyy", { locale: es })}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tx.type === "gasto" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
@@ -267,10 +279,21 @@ export default function TransaccionesPage() {
                         <TableCell>{tx.sourceName}</TableCell>
                         <TableCell className="max-w-xs truncate">{tx.note || "-"}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          <Link href={`/dashboard/transacciones/${tx.id}/editar`} className="text-sm text-primary hover:underline mr-3">
+                          <Link
+                            href={`/dashboard/transacciones/${tx.id}/editar`}
+                            className="text-sm text-primary hover:underline mr-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             Editar
                           </Link>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(tx.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(tx.id);
+                            }}
+                          >
                             <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
                         </TableCell>
@@ -312,6 +335,8 @@ export default function TransaccionesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <TransactionDetailsDialog tx={selectedTx} onClose={() => setSelectedTx(null)} />
     </div>
   );
 }
