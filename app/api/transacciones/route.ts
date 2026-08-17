@@ -135,17 +135,22 @@ export async function GET(request: NextRequest) {
     const total = transactions.length;
     transactions = transactions.slice(offset, offset + limit);
 
-    // Enrich with category/source names + source icon/color
-    const catMap = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+    // Enrich with category/source names + icons/colors
+    const catMap = Object.fromEntries(
+      categories.map((c) => [c.id, { name: c.name, icon: c.icon, color: c.color }])
+    );
     const srcMap = Object.fromEntries(
       sources.map((s) => [s.id, { name: s.name, icon: s.icon, color: s.color }])
     );
 
     const enriched = transactions.map((t) => {
       const src = srcMap[t.sourceId];
+      const cat = catMap[t.categoryId];
       return {
         ...t,
-        categoryName: catMap[t.categoryId] || "Desconocida",
+        categoryName: cat?.name || "Desconocida",
+        categoryIcon: cat?.icon,
+        categoryColor: cat?.color,
         sourceName: src?.name || "Desconocida",
         sourceIcon: src?.icon,
         sourceColor: src?.color,

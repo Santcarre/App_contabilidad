@@ -38,6 +38,25 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await expect(page.getByText("COP", { exact: true }).first()).toBeVisible();
   });
 
+  test("detalle de transacción: click en la fila abre los detalles completos", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Ver detalles de Supermercado" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Supermercado").first()).toBeVisible();
+    await expect(dialog.getByText("Gasto", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Mercado", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Efectivo", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("COP", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("50.000")).toBeVisible();
+
+    await page.getByRole("button", { name: /Cerrar/ }).click();
+    await expect(dialog).toBeHidden();
+  });
+
   test("crear transacción: formulario válido → toast + redirección", async ({ page }) => {
     await loginAs(page);
     await mockApi(page);

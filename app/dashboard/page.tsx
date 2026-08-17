@@ -2,11 +2,22 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, TrendingUp, TrendingDown, Minus, ArrowRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronRight,
+  Repeat,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useReport } from "@/hooks/use-reports";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { getCurrentMonth, formatCurrency } from "@/lib/utils";
 import { formatDate } from "@/lib/currency";
 import { CategoryIcon } from "@/components/ui/icon-picker";
@@ -59,9 +70,102 @@ const quickActions = [
   { name: "Ver Reportes", href: "/dashboard/reportes", icon: ArrowRight, color: "bg-blue-100 text-blue-600" },
 ];
 
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2.5">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1.5 text-right text-sm font-medium">{children}</span>
+    </div>
+  );
+}
+
+function TransactionDetailsDialog({
+  tx,
+  onClose,
+}: {
+  tx: Transaction | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={tx !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain">
+        {tx && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span
+                  className={`rounded-full p-1.5 ${
+                    tx.type === "ingreso" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {tx.type === "ingreso" ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                </span>
+                {tx.note || tx.categoryName || "Transacción"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="rounded-lg bg-muted p-4">
+              <p className="text-xs text-muted-foreground">Monto</p>
+              <p
+                className={`font-mono text-2xl font-bold tabular-nums ${
+                  tx.type === "ingreso" ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {tx.type === "ingreso" ? "+" : "−"}
+                {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
+                <span className="ml-1.5 align-middle rounded bg-background px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  {tx.currencyOriginal}
+                </span>
+              </p>
+              {tx.currencyOriginal !== tx.currencyBase && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  = {formatCurrency(tx.amountBase, tx.currencyBase)} en moneda base
+                </p>
+              )}
+            </div>
+            <div className="divide-y">
+              <DetailRow label="Tipo">
+                <span className={tx.type === "ingreso" ? "text-green-600" : "text-red-600"}>
+                  {tx.type === "ingreso" ? "Ingreso" : "Gasto"}
+                </span>
+              </DetailRow>
+              <DetailRow label="Categoría">
+                <span className="flex items-center gap-1.5">
+                  {tx.categoryIcon && (
+                    <CategoryIcon name={tx.categoryIcon} color={tx.categoryColor} className="h-4 w-4" />
+                  )}
+                  {tx.categoryName || "Sin categoría"}
+                </span>
+              </DetailRow>
+              <DetailRow label="Medio de pago">
+                <span className="flex items-center gap-1.5">
+                  {tx.sourceIcon && (
+                    <CategoryIcon name={tx.sourceIcon} color={tx.sourceColor} className="h-4 w-4" />
+                  )}
+                  {tx.sourceName || "Sin fuente"}
+                </span>
+              </DetailRow>
+              <DetailRow label="Fecha">{formatDate(tx.date)}</DetailRow>
+              {tx.note && <DetailRow label="Nota">{tx.note}</DetailRow>}
+              {tx.recurringId && (
+                <DetailRow label="Tipo">
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">
+                    <Repeat className="mr-1 h-3 w-3" />
+                    Recurrente
+                  </span>
+                </DetailRow>
+              )}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function DashboardPage() {
   const month = getCurrentMonth();
   const [period, setPeriod] = useState<Period>("month");
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const labels = PERIOD_LABELS[period];
   const { data: report, isLoading } = useReport(month, "gasto", period);
   const { data: recentData, isLoading: recentLoading } = useTransactions({ limit: 5 });
@@ -176,33 +280,41 @@ export default function DashboardPage() {
                 return (
                   <li
                     key={tx.id}
-                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
+                    className="rounded-lg border transition-colors hover:bg-accent"
                   >
-                    <span
-                      className={`rounded-full p-1.5 ${isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTx(tx)}
+                      className="flex w-full items-center gap-3 rounded-lg p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      aria-label={`Ver detalles de ${tx.note || tx.categoryName || "la transacción"}`}
                     >
-                      {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                    </span>
-                    {tx.sourceIcon && (
-                      <span className="rounded-md bg-muted p-1.5" title={tx.sourceName}>
-                        <CategoryIcon name={tx.sourceIcon} color={tx.sourceColor} className="h-4 w-4" />
+                      <span
+                        className={`rounded-full p-1.5 ${isIncome ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                      >
+                        {isIncome ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                       </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{tx.note || tx.categoryName || "Sin descripción"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(tx.date)} · {tx.sourceName || "Sin fuente"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
-                        {isIncome ? "+" : "−"}
-                        {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
-                      </p>
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {tx.currencyOriginal}
-                      </span>
-                    </div>
+                      {tx.sourceIcon && (
+                        <span className="rounded-md bg-muted p-1.5" title={tx.sourceName}>
+                          <CategoryIcon name={tx.sourceIcon} color={tx.sourceColor} className="h-4 w-4" />
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{tx.note || tx.categoryName || "Sin descripción"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(tx.date)} · {tx.sourceName || "Sin fuente"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <p className={`font-mono text-sm font-semibold tabular-nums ${isIncome ? "text-green-600" : "text-red-600"}`}>
+                          {isIncome ? "+" : "−"}
+                          {formatCurrency(tx.amountOriginal, tx.currencyOriginal)}
+                        </p>
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {tx.currencyOriginal}
+                        </span>
+                      </div>
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    </button>
                   </li>
                 );
               })}
@@ -210,6 +322,8 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <TransactionDetailsDialog tx={selectedTx} onClose={() => setSelectedTx(null)} />
     </div>
   );
 }

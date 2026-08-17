@@ -104,8 +104,8 @@ export function mockApi(page: Page) {
       if (method === "DELETE") return json({ success: true });
       return json({
         transactions: [
-          { id: "t1", type: "gasto", amountOriginal: 50000, currencyOriginal: "COP", amountBase: 50000, currencyBase: "COP", categoryId: CATEGORIAS[0].id, sourceId: FUENTES[0].id, date: "2026-08-10", note: "Supermercado", recurringId: "", categoryName: "Mercado", sourceName: "Efectivo", sourceIcon: FUENTES[0].icon, sourceColor: FUENTES[0].color },
-          { id: "t2", type: "ingreso", amountOriginal: 2500000, currencyOriginal: "COP", amountBase: 2500000, currencyBase: "COP", categoryId: CATEGORIAS[1].id, sourceId: FUENTES[1].id, date: "2026-08-01", note: "Nómina", recurringId: "", categoryName: "Salario", sourceName: "Bancolombia", sourceIcon: FUENTES[1].icon, sourceColor: FUENTES[1].color },
+          { id: "t1", type: "gasto", amountOriginal: 50000, currencyOriginal: "COP", amountBase: 50000, currencyBase: "COP", categoryId: CATEGORIAS[0].id, sourceId: FUENTES[0].id, date: "2026-08-10", note: "Supermercado", recurringId: "", categoryName: "Mercado", categoryIcon: CATEGORIAS[0].icon, categoryColor: CATEGORIAS[0].color, sourceName: "Efectivo", sourceIcon: FUENTES[0].icon, sourceColor: FUENTES[0].color },
+          { id: "t2", type: "ingreso", amountOriginal: 2500000, currencyOriginal: "COP", amountBase: 2500000, currencyBase: "COP", categoryId: CATEGORIAS[1].id, sourceId: FUENTES[1].id, date: "2026-08-01", note: "Nómina", recurringId: "", categoryName: "Salario", categoryIcon: CATEGORIAS[1].icon, categoryColor: CATEGORIAS[1].color, sourceName: "Bancolombia", sourceIcon: FUENTES[1].icon, sourceColor: FUENTES[1].color },
         ],
         total: 2,
         limit: 25,

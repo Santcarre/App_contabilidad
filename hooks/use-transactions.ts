@@ -14,6 +14,8 @@ export interface Transaction {
   currencyBase: string;
   categoryId: string;
   categoryName?: string;
+  categoryIcon?: string;
+  categoryColor?: string;
   sourceId: string;
   sourceName?: string;
   sourceIcon?: string;
