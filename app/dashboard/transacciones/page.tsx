@@ -157,13 +157,8 @@ export default function TransaccionesPage() {
                 </li>
               ) : (
                 sortedTransactions.map((tx) => (
-                  <MobileCard key={tx.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedTx(tx)}
-                      className="min-w-0 flex-1 space-y-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
-                      aria-label={`Ver detalles de ${tx.note || tx.categoryName || "la transacción"}`}
-                    >
+                  <MobileCard key={tx.id} onClick={() => setSelectedTx(tx)}>
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(tx.date), "dd/MM/yyyy", { locale: es })}
@@ -191,7 +186,7 @@ export default function TransaccionesPage() {
                         {[tx.categoryName, tx.sourceName].filter(Boolean).join(" · ")}
                       </p>
                       {tx.note && <p className="text-sm text-muted-foreground truncate">{tx.note}</p>}
-                    </button>
+                    </div>
                     <MobileActions>
                       <Link
                         href={`/dashboard/transacciones/${tx.id}/editar`}

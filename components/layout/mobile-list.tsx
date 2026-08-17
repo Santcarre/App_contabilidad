@@ -17,16 +17,20 @@ export function MobileList({ children }: { children: React.ReactNode }) {
 export function MobileCard({
   children,
   className,
+  onClick,
 }: {
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
     <li
       className={cn(
         "bg-card border rounded-lg p-4 flex items-start justify-between gap-3",
+        onClick && "cursor-pointer",
         className
       )}
+      onClick={onClick}
     >
       {children}
     </li>

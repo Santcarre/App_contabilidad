@@ -1,5 +1,5 @@
 import { convertAmountToBase, type RateRow } from "./currency";
-import { round2, periodRange } from "./reports";
+import { round2, shiftDate } from "./reports";
 
 export interface WalletSource {
   id: string;
@@ -37,7 +37,7 @@ export interface Wallet {
   dayExpense: number;
   /** Saldo actual = startOfDay + dayIncome - dayExpense. */
   balance: number;
-  /** Movimientos de la semana en curso (lunes-domingo) hasta `today`, ordenados por fecha desc. */
+  /** Movimientos de los últimos 7 días hasta `today`, ordenados por fecha desc. */
   transactions: WalletTransaction[];
 }
 
@@ -87,7 +87,7 @@ export function computeWallets(
     }
 
     const startOfDay = src.initialBalance + previous;
-    const weekStart = periodRange("week", today).start;
+    const weekStart = shiftDate(today, -6);
     const weekTxs = converted
       .filter((tx) => tx.date >= weekStart)
       .sort((a, b) => b.date.localeCompare(a.date))

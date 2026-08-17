@@ -88,3 +88,14 @@ test.describe("móvil (viewport iPhone)", () => {
     });
   }
 });
+  test("transacciones: tocar cualquier zona de la tarjeta abre el detalle", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard/transacciones");
+    const card = mobileList(page).getByText("Supermercado").locator("..").locator("..");
+    await card.locator(".font-mono").first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Supermercado" })).toBeVisible();
+    await page.getByRole("button", { name: /Cerrar/ }).click();
+    await expect(dialog).toBeHidden();
+  });

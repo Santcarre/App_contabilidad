@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CategoryIcon } from "@/components/ui/icon-picker";
 import { ArrowDownRight, ArrowUpRight, Landmark, Plus, TrendingDown, TrendingUp, Wallet as WalletIcon } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/currency";
-import { periodRange } from "@/lib/reports";
+import { shiftDate } from "@/lib/reports";
 import { useBilleteras } from "@/hooks/use-billeteras";
 import type { Wallet, WalletTransaction } from "@/lib/wallets";
 
@@ -99,7 +99,7 @@ function MovementsDialog({
   today: string;
   onClose: () => void;
 }) {
-  const weekStart = today ? periodRange("week", today).start : "";
+  const weekStart = today ? shiftDate(today, -6) : "";
 
   const sections = wallet
     ? [
