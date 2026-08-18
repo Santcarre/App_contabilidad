@@ -110,10 +110,14 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await expect(page.getByRole("tab", { name: "Semana" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Mes" })).toBeVisible();
     await page.getByRole("tab", { name: "Día" }).click();
+    await expect(page.getByLabel("Día del período")).toBeVisible();
     await expect(page.getByText("No hay presupuestos diarios para este período")).toBeVisible();
     await page.getByRole("tab", { name: "Semana" }).click();
+    await expect(page.getByLabel("Inicio del intervalo de la semana")).toBeVisible();
+    await expect(page.getByLabel("Fin del intervalo de la semana")).toBeVisible();
     await expect(page.getByText("No hay presupuestos semanales para este período")).toBeVisible();
     await page.getByRole("tab", { name: "Mes" }).click();
+    await expect(page.getByLabel("Mes del período")).toBeVisible();
     await expect(page.getByText("No hay presupuestos mensuales para este período")).toBeVisible();
   });
 
@@ -153,4 +157,16 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await page.getByRole("menuitem", { name: /cerrar sesión/i }).click();
     await expect(page).toHaveURL(/\/auth\/login/);
   });
+});
+
+test("presupuestos: crear desde el diálogo", async ({ page }) => {
+  await loginAs(page);
+  await mockApi(page);
+  await page.goto("/dashboard/presupuestos");
+  await page.getByRole("button", { name: "Nuevo presupuesto" }).click();
+  await page.getByText("Seleccionar categoría").click();
+  await page.getByRole("option", { name: "Mercado" }).click();
+  await page.getByLabel("Límite mensuales (COP)").fill("500000");
+  await page.getByRole("button", { name: "Crear" }).click();
+  await expect(page.getByText("Presupuesto creado")).toBeVisible();
 });

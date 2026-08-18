@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = budgetSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json({ error: "Revisa los datos del presupuesto." }, { status: 400 });
     }
 
     const spreadsheetId = await getSpreadsheetId();
@@ -125,16 +125,21 @@ export async function POST(request: NextRequest) {
     const existing = await getBudgets(sheets);
     const periodKey = budgetPeriodKey(parsed.data.periodo, parsed.data.fecha);
     if (existing.some((b) => b.categoryId === parsed.data.categoryId && b.periodo === parsed.data.periodo && b.periodKey === periodKey)) {
-      return NextResponse.json({ error: "BUDGET_EXISTS" }, { status: 409 });
+      return NextResponse.json({ error: "Ya tienes un presupuesto para esta categoría en este período." }, { status: 409 });
     }
 
     const config = getConfigFromRows(await sheets.getRows("Configuracion!A:C"));
     const currencyBase = config.currencyBase || "COP";
 
     // Migración: añade la columna Periodo al encabezado de hojas creadas antes de esta versión.
-    const header = await sheets.getRows("Presupuestos!A1:I1");
-    if (!header[0]?.[8]) {
-      await sheets.update("Presupuestos!I1", [["Periodo"]]);
+    // Si falla, no debe bloquear la creación del presupuesto.
+    try {
+      const header = await sheets.getRows("Presupuestos!A1:I1");
+      if (!header[0]?.[8]) {
+        await sheets.update("Presupuestos!I1", [["Periodo"]]);
+      }
+    } catch {
+      // migración opcional
     }
 
     const id = crypto.randomUUID();
@@ -155,7 +160,7 @@ export async function PUT(request: NextRequest) {
 
     const parsed = budgetSchema.safeParse(data);
     if (!parsed.success) {
-      return NextResponse.json({ error: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+      return NextResponse.json({ error: "Revisa los datos del presupuesto." }, { status: 400 });
     }
 
     const spreadsheetId = await getSpreadsheetId();
@@ -164,12 +169,20 @@ export async function PUT(request: NextRequest) {
 
     const res = await sheets.getRows("Presupuestos!A:I");
     const rowIndex = res.slice(1).findIndex((r) => r[0] === id);
-    if (rowIndex === -1) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+    if (rowIndex === -1) return NextResponse.json({ error: "Presupuesto no encontrado." }, { status: 404 });
+    const existing = res.slice(1)[rowIndex];
 
     const periodKey = budgetPeriodKey(parsed.data.periodo, parsed.data.fecha);
     const sheetRow = rowIndex + 2;
     await sheets.update(`Presupuestos!B${sheetRow}:I${sheetRow}`, [[
-      parsed.data.categoryId, parsed.data.limitAmount, periodKey, parsed.data.alert80, parsed.data.alert100, parsed.data.periodo,
+      parsed.data.categoryId,
+      parsed.data.limitAmount,
+      periodKey,
+      parsed.data.alert80,
+      parsed.data.alert100,
+      existing[6] ?? new Date().toISOString(),
+      existing[7] || "COP",
+      parsed.data.periodo,
     ]]);
 
     return NextResponse.json({ success: true });

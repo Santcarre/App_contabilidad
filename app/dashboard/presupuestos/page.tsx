@@ -22,7 +22,7 @@ import {
   useDeleteBudget,
   type Budget,
 } from "@/hooks/use-budgets";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { periodRange } from "@/lib/reports";
 
@@ -38,6 +38,16 @@ function periodLabel(periodo: string, fecha: string): string {
   }
   return format(parseISO(iso), "MMMM yyyy", { locale: es });
 }
+
+const MONTH_ITEMS = (() => {
+  const items: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    items.push({ value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy", { locale: es }) });
+  }
+  return items;
+})();
 
 export default function PresupuestosPage() {
   const { data: ratesData } = useRates();
@@ -111,6 +121,9 @@ export default function PresupuestosPage() {
 
   const loading = isLoading || categoriesLoading;
   const saving = createBudget.isPending || updateBudget.isPending;
+  const semanaDesde = format(startOfWeek(parseISO(fecha), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const semanaHasta = format(endOfWeek(parseISO(fecha), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const mesValue = fecha.slice(0, 7);
 
   return (
     <div className="space-y-6">
@@ -130,13 +143,46 @@ export default function PresupuestosPage() {
                   <TabsTrigger value="mes">Mes</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <Input
-                type="date"
-                value={fecha}
-                onChange={(e) => e.target.value && setFecha(e.target.value)}
-                className="w-[160px]"
-                aria-label="Fecha del período"
-              />
+              {periodo === "dia" && (
+                <Input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => e.target.value && setFecha(e.target.value)}
+                  className="w-[160px]"
+                  aria-label="Día del período"
+                />
+              )}
+              {periodo === "semana" && (
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="date"
+                    value={semanaDesde}
+                    onChange={(e) => e.target.value && setFecha(e.target.value)}
+                    className="w-[150px]"
+                    aria-label="Inicio del intervalo de la semana"
+                  />
+                  <span className="text-muted-foreground">–</span>
+                  <Input
+                    type="date"
+                    value={semanaHasta}
+                    onChange={(e) => e.target.value && setFecha(e.target.value)}
+                    className="w-[150px]"
+                    aria-label="Fin del intervalo de la semana"
+                  />
+                </div>
+              )}
+              {periodo === "mes" && (
+                <Select value={mesValue} onValueChange={(m) => setFecha(`${m}-01`)}>
+                  <SelectTrigger className="w-[180px]" aria-label="Mes del período">
+                    <SelectValue placeholder="Mes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_ITEMS.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
