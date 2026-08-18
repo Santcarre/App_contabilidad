@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileList, MobileCard, MobileActions } from "@/components/layout/mobile-list";
 import { TransactionDetailsDialog } from "@/components/transaccion-detalle";
 import { Plus, ChevronDown, ChevronUp, Download, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, localDateString } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
@@ -85,7 +85,7 @@ export default function TransaccionesPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `transacciones_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `transacciones_${localDateString()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

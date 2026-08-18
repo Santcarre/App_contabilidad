@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, localDateString } from "@/lib/utils";
 import { MoneyField, parseMoneyInput } from "@/components/ui/money-field";
 import { getColorValue } from "@/lib/color-map";
 import { useRates } from "@/hooks/use-config";
@@ -20,16 +22,28 @@ import {
   useDeleteBudget,
   type Budget,
 } from "@/hooks/use-budgets";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { periodRange } from "@/lib/reports";
+
+const PERIOD_LABELS: Record<string, string> = { dia: "Día", semana: "Semana", mes: "Mes" };
+const PERIOD_ADJECTIVE: Record<string, string> = { dia: "diarios", semana: "semanales", mes: "mensuales" };
+
+function periodLabel(periodo: string, fecha: string): string {
+  const iso = periodo === "mes" ? `${fecha.slice(0, 7)}-01` : fecha;
+  if (periodo === "dia") return format(parseISO(iso), "EEEE d 'de' MMMM yyyy", { locale: es });
+  if (periodo === "semana") {
+    const { start, end } = periodRange("week", fecha);
+    return `${format(parseISO(start), "d 'de' MMMM", { locale: es })} – ${format(parseISO(end), "d 'de' MMMM yyyy", { locale: es })}`;
+  }
+  return format(parseISO(iso), "MMMM yyyy", { locale: es });
+}
 
 export default function PresupuestosPage() {
   const { data: ratesData } = useRates();
   const currencyBase = ratesData?.baseCurrency ?? "COP";
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const [periodo, setPeriodo] = useState<"dia" | "semana" | "mes">("mes");
+  const [fecha, setFecha] = useState(() => localDateString());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [formData, setFormData] = useState({
@@ -39,7 +53,7 @@ export default function PresupuestosPage() {
     alert100: true,
   });
 
-  const { data: budgets, isLoading, isError } = useBudgets(selectedMonth);
+  const { data: budgets, isLoading, isError } = useBudgets(periodo, fecha);
   const { data: categories, isLoading: categoriesLoading } = useBudgetCategories();
   const createBudget = useCreateBudget();
   const updateBudget = useUpdateBudget();
@@ -70,7 +84,8 @@ export default function PresupuestosPage() {
     const payload = {
       categoryId: formData.categoryId,
       limitAmount: amount,
-      month: selectedMonth,
+      periodo,
+      fecha,
       alert80: formData.alert80,
       alert100: formData.alert100,
     };
@@ -106,24 +121,23 @@ export default function PresupuestosPage() {
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="space-y-1">
-            <Label htmlFor="month" className="text-sm">Mes</Label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 24 }, (_, i) => {
-                  const date = new Date();
-                  date.setMonth(date.getMonth() - i);
-                  const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-                  return (
-                    <SelectItem key={value} value={value}>
-                      {format(new Date(value + "-01"), "MMMM yyyy", { locale: es })}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <Label className="text-sm">Período</Label>
+            <div className="flex items-center gap-2">
+              <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as "dia" | "semana" | "mes")}>
+                <TabsList>
+                  <TabsTrigger value="dia">Día</TabsTrigger>
+                  <TabsTrigger value="semana">Semana</TabsTrigger>
+                  <TabsTrigger value="mes">Mes</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <Input
+                type="date"
+                value={fecha}
+                onChange={(e) => e.target.value && setFecha(e.target.value)}
+                className="w-[160px]"
+                aria-label="Fecha del período"
+              />
+            </div>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -151,11 +165,12 @@ export default function PresupuestosPage() {
                 <div className="space-y-2">
                   <MoneyField
                     id="limitAmount"
-                    label={`Límite mensual (${currencyBase})`}
+                    label={`Límite ${PERIOD_ADJECTIVE[periodo]} (${currencyBase})`}
                     value={formData.limitAmount}
                     onChange={(raw) => setFormData({ ...formData, limitAmount: raw })}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">{periodLabel(periodo, fecha)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch id="alert80" checked={formData.alert80} onCheckedChange={(v) => setFormData({ ...formData, alert80: v })} />
@@ -192,7 +207,7 @@ export default function PresupuestosPage() {
           {(budgets ?? []).length === 0 ? (
             <Card className="col-span-full">
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">No hay presupuestos para este mes</p>
+                <p className="text-muted-foreground">No hay presupuestos {PERIOD_ADJECTIVE[periodo]} para este período</p>
                 <Button className="mt-4" onClick={openCreateDialog}>
                   <Plus className="mr-2 h-4 w-4" />
                   Crear primer presupuesto
@@ -214,7 +229,9 @@ export default function PresupuestosPage() {
                         </div>
                         <div>
                           <CardTitle className="text-base">{budget.categoryName}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{format(new Date(budget.month + "-01"), "MMMM yyyy", { locale: es })}</p>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {PERIOD_LABELS[budget.periodo]} · {periodLabel(budget.periodo, budget.periodKey)}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">

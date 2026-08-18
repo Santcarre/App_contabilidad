@@ -3,17 +3,19 @@ import { SheetsClient } from "@/lib/google-sheets";
 import { budgetSchema } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
 import { convertAmountToBase, parseStoredRate, type RateRow } from "@/lib/currency";
+import { budgetPeriodKey, budgetPeriodRange, type BudgetPeriod } from "@/lib/reports";
 
 async function getBudgets(sheets: SheetsClient): Promise<any[]> {
-  const res = await sheets.getRows("Presupuestos!A:H");
+  const res = await sheets.getRows("Presupuestos!A:I");
   return getBudgetsFromRows(res);
 }
 
 function getBudgetsFromRows(res: any[][]): any[] {
   return res.slice(1).filter((r) => r[0]).map((row) => ({
     id: row[0], categoryId: row[1], limitAmount: parseFloat(row[2]),
-    month: row[3], alert80: row[4] === "TRUE", alert100: row[5] === "TRUE", createdAt: row[6],
+    periodKey: row[3], alert80: row[4] === "TRUE", alert100: row[5] === "TRUE", createdAt: row[6],
     currencyBase: row[7] || "COP",
+    periodo: (row[8] as BudgetPeriod) || "mes",
   }));
 }
 
@@ -41,13 +43,14 @@ function getConfigFromRows(res: any[][]): Record<string, any> {
   return config;
 }
 
-function getSpentByCategoryFromRows(res: any[][], month: string, currencyBase: string, rateRows: RateRow[]): Record<string, number> {
+function getSpentByCategoryFromRows(res: any[][], start: string, end: string, currencyBase: string, rateRows: RateRow[]): Record<string, number> {
   const spent: Record<string, number> = {};
   for (const row of res.slice(1)) {
-    if (!row[0] || row[1] !== "gasto" || !row[8]?.startsWith(month)) continue;
+    const date = row[8];
+    if (!row[0] || row[1] !== "gasto" || !date || date < start || date > end) continue;
     const categoryId = row[6];
     const txBase = row[5] || "COP";
-    const amount = convertAmountToBase(parseFloat(row[4]) || 0, txBase, currencyBase, row[8], rateRows);
+    const amount = convertAmountToBase(parseFloat(row[4]) || 0, txBase, currencyBase, date, rateRows);
     spent[categoryId] = (spent[categoryId] ?? 0) + amount;
   }
   return spent;
@@ -59,17 +62,21 @@ export async function GET(request: NextRequest) {
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
 
-    const month = request.nextUrl.searchParams.get("month");
-    if (!month) return NextResponse.json({ error: "MISSING_MONTH" }, { status: 400 });
+    const periodoParam = request.nextUrl.searchParams.get("periodo");
+    const fechaParam = request.nextUrl.searchParams.get("fecha");
+    const periodo: BudgetPeriod = periodoParam === "dia" || periodoParam === "semana" ? periodoParam : "mes";
+    const fecha = fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam) ? fechaParam : new Date().toISOString().split("T")[0];
+    const key = budgetPeriodKey(periodo, fecha);
+    const range = budgetPeriodRange(periodo, fecha);
 
     const batch = await sheets.batchGet([
-      "Presupuestos!A:H",
+      "Presupuestos!A:I",
       "Categorias!A:H",
       "Transacciones!A:M",
       "Configuracion!A:C",
       "TasasCambio!A:F",
     ]);
-    const budgets = getBudgetsFromRows(batch["Presupuestos!A:H"] ?? []);
+    const budgets = getBudgetsFromRows(batch["Presupuestos!A:I"] ?? []);
     const categories = getCategoriesFromRows(batch["Categorias!A:H"] ?? []);
     const config = getConfigFromRows(batch["Configuracion!A:C"] ?? []);
     const currencyBase = config.currencyBase || "COP";
@@ -84,17 +91,16 @@ export async function GET(request: NextRequest) {
         date: r[4],
         fetchedAt: r[5],
       }));
-    const spentByCategory = getSpentByCategoryFromRows(batch["Transacciones!A:M"] ?? [], month, currencyBase, rateRows);
-    const today = new Date().toISOString().split("T")[0];
+    const spentByCategory = getSpentByCategoryFromRows(batch["Transacciones!A:M"] ?? [], range.start, range.end, currencyBase, rateRows);
 
     const catMap = Object.fromEntries(categories.map((c) => [c.id, c]));
 
-    const filtered = budgets.filter((b) => b.month === month);
+    const filtered = budgets.filter((b) => b.periodo === periodo && b.periodKey === key);
     const enriched = filtered.map((b) => ({
       ...b,
       categoryName: catMap[b.categoryId]?.name || "Desconocida",
       categoryColor: catMap[b.categoryId]?.color || "gray-500",
-      limitAmount: convertAmountToBase(b.limitAmount, b.currencyBase, currencyBase, today, rateRows),
+      limitAmount: convertAmountToBase(b.limitAmount, b.currencyBase, currencyBase, fecha, rateRows),
       spent: Math.round((spentByCategory[b.categoryId] ?? 0) * 100) / 100,
     }));
 
@@ -117,16 +123,23 @@ export async function POST(request: NextRequest) {
     const sheets = new SheetsClient(accessToken, spreadsheetId);
 
     const existing = await getBudgets(sheets);
-    if (existing.some((b) => b.categoryId === parsed.data.categoryId && b.month === parsed.data.month)) {
+    const periodKey = budgetPeriodKey(parsed.data.periodo, parsed.data.fecha);
+    if (existing.some((b) => b.categoryId === parsed.data.categoryId && b.periodo === parsed.data.periodo && b.periodKey === periodKey)) {
       return NextResponse.json({ error: "BUDGET_EXISTS" }, { status: 409 });
     }
 
     const config = getConfigFromRows(await sheets.getRows("Configuracion!A:C"));
     const currencyBase = config.currencyBase || "COP";
 
+    // Migración: añade la columna Periodo al encabezado de hojas creadas antes de esta versión.
+    const header = await sheets.getRows("Presupuestos!A1:I1");
+    if (!header[0]?.[8]) {
+      await sheets.update("Presupuestos!I1", [["Periodo"]]);
+    }
+
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await sheets.append("Presupuestos", [id, parsed.data.categoryId, parsed.data.limitAmount, parsed.data.month, parsed.data.alert80, parsed.data.alert100, now, currencyBase]);
+    await sheets.append("Presupuestos", [id, parsed.data.categoryId, parsed.data.limitAmount, periodKey, parsed.data.alert80, parsed.data.alert100, now, currencyBase, parsed.data.periodo]);
 
     return NextResponse.json({ success: true, id });
   } catch (error: any) {
@@ -140,17 +153,23 @@ export async function PUT(request: NextRequest) {
     const { id, ...data } = body;
     if (!id) return NextResponse.json({ error: "MISSING_ID" }, { status: 400 });
 
+    const parsed = budgetSchema.safeParse(data);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+
     const spreadsheetId = await getSpreadsheetId();
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
 
-    const res = await sheets.getRows("Presupuestos!A:G");
+    const res = await sheets.getRows("Presupuestos!A:I");
     const rowIndex = res.slice(1).findIndex((r) => r[0] === id);
     if (rowIndex === -1) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
+    const periodKey = budgetPeriodKey(parsed.data.periodo, parsed.data.fecha);
     const sheetRow = rowIndex + 2;
-    await sheets.update(`Presupuestos!B${sheetRow}:F${sheetRow}`, [[
-      data.categoryId, data.limitAmount, data.month, data.alert80, data.alert100,
+    await sheets.update(`Presupuestos!B${sheetRow}:I${sheetRow}`, [[
+      parsed.data.categoryId, parsed.data.limitAmount, periodKey, parsed.data.alert80, parsed.data.alert100, parsed.data.periodo,
     ]]);
 
     return NextResponse.json({ success: true });
@@ -169,14 +188,12 @@ export async function DELETE(request: NextRequest) {
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
 
-    const res = await sheets.getRows("Presupuestos!A:G");
+    const res = await sheets.getRows("Presupuestos!A:I");
     const rowIndex = res.slice(1).findIndex((r) => r[0] === id);
     if (rowIndex === -1) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
-    // For budgets, we actually delete the row (no soft delete)
-    // In a real app, you might want to keep history. For now, we'll just clear it.
     const sheetRow = rowIndex + 2;
-    await sheets.update(`Presupuestos!A${sheetRow}:G${sheetRow}`, [["", "", "", "", "", "", ""]]);
+    await sheets.update(`Presupuestos!A${sheetRow}:I${sheetRow}`, [["", "", "", "", "", "", "", "", ""]]);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

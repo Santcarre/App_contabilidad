@@ -10,7 +10,8 @@ export interface Budget {
   categoryName: string;
   categoryColor: string;
   limitAmount: number;
-  month: string;
+  periodo: "dia" | "semana" | "mes";
+  periodKey: string;
   spent: number;
   alert80: boolean;
   alert100: boolean;
@@ -25,16 +26,17 @@ export interface BudgetCategory {
 export type BudgetInput = {
   categoryId: string;
   limitAmount: number;
-  month: string;
+  periodo: "dia" | "semana" | "mes";
+  fecha: string;
   alert80: boolean;
   alert100: boolean;
 };
 
-export function useBudgets(month: string) {
+export function useBudgets(periodo: "dia" | "semana" | "mes", fecha: string) {
   return useQuery({
-    queryKey: ["budgets", month],
+    queryKey: ["budgets", periodo, fecha],
     queryFn: async () => {
-      const data = await request(`/api/presupuestos?month=${month}`);
+      const data = await request(`/api/presupuestos?periodo=${periodo}&fecha=${fecha}`);
       return data.budgets as Budget[];
     },
   });

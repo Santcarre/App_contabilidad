@@ -88,7 +88,7 @@ async function writeHeadersAndSeed(sheets: sheets_v4.Sheets, spreadsheetId: stri
     Transacciones: ["id", "type", "amountOriginal", "currencyOriginal", "amountBase", "currencyBase", "categoryId", "sourceId", "date", "note", "recurringId", "createdAt", "updatedAt"],
     Categorias: ["id", "name", "type", "icon", "color", "order", "active", "isDefault"],
     Fuentes: ["id", "name", "type", "icon", "color", "initialBalance", "active", "isDefault"],
-    Presupuestos: ["id", "categoryId", "limitAmount", "month", "alert80", "alert100", "createdAt"],
+    Presupuestos: ["id", "categoryId", "limitAmount", "periodKey", "alert80", "alert100", "createdAt", "currencyBase", "periodo"],
     Recurrentes: ["id", "type", "amountOriginal", "currencyOriginal", "categoryId", "sourceId", "frequency", "dayOfMonth", "startDate", "endDate", "active", "nextGeneration", "lastGenerated", "createdAt", "note"],
     Configuracion: ["key", "value", "updatedAt"],
     TasasCambio: ["baseCurrency", "targetCurrency", "rate", "source", "date", "fetchedAt"],

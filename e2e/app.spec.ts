@@ -102,6 +102,21 @@ test.describe("flujo principal (login → dashboard → transacción → reporte
     await expect(dialog).toBeHidden();
   });
 
+  test("presupuestos: selector de período diario/semanal/mensual", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard/presupuestos");
+    await expect(page.getByRole("tab", { name: "Día" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Semana" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Mes" })).toBeVisible();
+    await page.getByRole("tab", { name: "Día" }).click();
+    await expect(page.getByText("No hay presupuestos diarios para este período")).toBeVisible();
+    await page.getByRole("tab", { name: "Semana" }).click();
+    await expect(page.getByText("No hay presupuestos semanales para este período")).toBeVisible();
+    await page.getByRole("tab", { name: "Mes" }).click();
+    await expect(page.getByText("No hay presupuestos mensuales para este período")).toBeVisible();
+  });
+
   test("reportes: tabs, resumen y desglose", async ({ page }) => {
     await loginAs(page);
     await mockApi(page);

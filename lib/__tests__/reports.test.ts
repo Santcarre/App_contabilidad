@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  budgetPeriodKey,
+  budgetPeriodRange,
   periodRange,
   previousPeriodDate,
   shiftDate,
@@ -136,5 +138,22 @@ describe("buildSourceBreakdown", () => {
     
     const items = buildSourceBreakdown([tx({ sourceColor: undefined })], "2026-08", "gasto");
     expect(items[0].color).toBe("#64748b");
+  });
+});
+
+describe("budgetPeriodKey y budgetPeriodRange", () => {
+  it("dia: clave = fecha, rango de un día", () => {
+    expect(budgetPeriodKey("dia", "2026-08-15")).toBe("2026-08-15");
+    expect(budgetPeriodRange("dia", "2026-08-15")).toEqual({ start: "2026-08-15", end: "2026-08-15" });
+  });
+
+  it("semana: clave = lunes de la semana, rango lunes-domingo", () => {
+    expect(budgetPeriodKey("semana", "2026-08-15")).toBe("2026-08-10");
+    expect(budgetPeriodRange("semana", "2026-08-15")).toEqual({ start: "2026-08-10", end: "2026-08-16" });
+  });
+
+  it("mes: clave = YYYY-MM, rango del mes completo", () => {
+    expect(budgetPeriodKey("mes", "2026-08-15")).toBe("2026-08");
+    expect(budgetPeriodRange("mes", "2026-08-15")).toEqual({ start: "2026-08-01", end: "2026-08-31" });
   });
 });

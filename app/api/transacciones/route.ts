@@ -1,8 +1,10 @@
 import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { transactionSchema } from "@/lib/validation";
-import { getRate, convertAmountToBase, parseStoredRate } from "@/lib/currency";
+import { getRate, convertAmountToBase, parseStoredRate, type RateRow } from "@/lib/currency";
 import { ExchangeRate } from "@/lib/currency";
+import { budgetPeriodKey, budgetPeriodRange } from "@/lib/reports";
+
 import { sortTransactionsDesc } from "@/lib/transactions";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -221,15 +223,12 @@ export async function POST(request: NextRequest) {
 
     let budgetAlert: { level: "warning" | "exceeded"; categoryName: string; spent: number; limit: number; currency: string } | null = null;
     if (parsed.data.type === "gasto") {
-      const month = parsed.data.date.slice(0, 7);
-      const budgetsRes = await sheets.getRows("Presupuestos!A:H");
-      const budget = budgetsRes
+      const txDate = parsed.data.date;
+      const budgetsRes = await sheets.getRows("Presupuestos!A:I");
+      const rateRows: RateRow[] = (await sheets.getRows("TasasCambio!A:F"))
         .slice(1)
-        .find((r) => r[0] && r[1] === parsed.data.categoryId && r[3] === month);
-      if (budget) {
-        const budgetBase = budget[7] || "COP";
-        const ratesRes = await sheets.getRows("TasasCambio!A:F");
-        const rateRows = ratesRes.slice(1).filter((r) => r[0]).map((r) => ({
+        .filter((r) => r[0])
+        .map((r) => ({
           baseCurrency: r[0],
           targetCurrency: r[1],
           rate: parseStoredRate(r[2]),
@@ -237,13 +236,24 @@ export async function POST(request: NextRequest) {
           date: r[4],
           fetchedAt: r[5],
         }));
-        const today = new Date().toISOString().split("T")[0];
-        const limit = convertAmountToBase(parseFloat(budget[2]) || 0, budgetBase, currencyBase, today, rateRows);
+
+      const budget = budgetsRes
+        .slice(1)
+        .find((r) => {
+          if (!r[0] || r[1] !== parsed.data.categoryId) return false;
+          const periodo = (r[8] as "dia" | "semana" | "mes") || "mes";
+          return r[3] === budgetPeriodKey(periodo, txDate);
+        });
+      if (budget) {
+        const periodo = (budget[8] as "dia" | "semana" | "mes") || "mes";
+        const budgetBase = budget[7] || "COP";
+        const { start, end } = budgetPeriodRange(periodo, txDate);
+        const limit = convertAmountToBase(parseFloat(budget[2]) || 0, budgetBase, currencyBase, txDate, rateRows);
         const txRows = await sheets.getRows("Transacciones!A:M");
         const spent =
           txRows
             .slice(1)
-            .filter((r) => r[0] && r[1] === "gasto" && r[6] === parsed.data.categoryId && r[8]?.startsWith(month))
+            .filter((r) => r[0] && r[1] === "gasto" && r[6] === parsed.data.categoryId && r[8] && r[8] >= start && r[8] <= end)
             .reduce((sum, r) => sum + convertAmountToBase(parseFloat(r[4]) || 0, r[5] || "COP", currencyBase, r[8], rateRows), 0) + amountBase;
         const pct = limit > 0 ? spent / limit : 1;
         if (pct >= 1 && budget[5] === "TRUE") {

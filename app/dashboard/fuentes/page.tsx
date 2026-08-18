@@ -159,8 +159,8 @@ export default function FuentesPage() {
                           {src.active ? "Activa" : "Inactiva"}
                         </span>
                       </div>
-                      <p className="font-mono tabular-nums text-sm">
-                        {formatCurrency(src.initialBalance, currencyBase)}
+                      <p className="text-xs text-muted-foreground">
+                        Saldo con el que se inició: {formatCurrency(src.initialBalance, currencyBase)}
                       </p>
                     </div>
                   </div>

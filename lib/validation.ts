@@ -30,7 +30,8 @@ export const sourceSchema = z.object({
 export const budgetSchema = z.object({
   categoryId: z.string().uuid(),
   limitAmount: z.number().positive().multipleOf(0.01),
-  month: z.string().regex(/^\d{4}-\d{2}$/),
+  periodo: z.enum(["dia", "semana", "mes"]),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   alert80: z.boolean().default(true),
   alert100: z.boolean().default(true),
 });

@@ -12,7 +12,7 @@ import { Calendar, DollarSign, ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Combobox } from "@/components/ui/combobox";
 import { CategoryIcon } from "@/components/ui/icon-picker";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, localDateString } from "@/lib/utils";
 import { convert, getLatestRate } from "@/lib/currency";
 import { useRates } from "@/hooks/use-config";
 import { useCategories } from "@/hooks/use-categories";
@@ -42,13 +42,13 @@ function NuevaTransaccionForm() {
     currency: "COP",
     categoryId: "",
     sourceId: "",
-    date: new Date().toISOString().split("T")[0],
+    date: localDateString(),
     note: "",
   });
 
   const currencyBase = ratesData?.baseCurrency ?? "COP";
   const currencyOptions = [...new Set([currencyBase, ...(ratesData?.currencies ?? ["USD", "EUR"])])];
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateString();
   const amountNum = parseMoneyInput(formData.amount);
   const rate =
     formData.currency !== currencyBase && ratesData

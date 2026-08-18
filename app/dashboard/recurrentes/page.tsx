@@ -13,7 +13,7 @@ import { MoneyField, parseMoneyInput } from "@/components/ui/money-field";
 import { Switch } from "@/components/ui/switch";
 import CurrencySelect from "@/components/ui/currency-select";
 import { Plus, Edit, Trash2, PauseCircle, PlayCircle, Calendar, Clock, Loader2, Zap } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, localDateString } from "@/lib/utils";
 import { getColorValue } from "@/lib/color-map";
 import { useCategories } from "@/hooks/use-categories";
 import { useSources } from "@/hooks/use-sources";
@@ -49,7 +49,7 @@ const EMPTY_FORM: FormState = {
   categoryId: "",
   sourceId: "",
   dayOfMonth: 1,
-  startDate: new Date().toISOString().split("T")[0],
+  startDate: localDateString(),
   endDate: "",
   active: true,
   note: "",

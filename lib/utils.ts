@@ -16,6 +16,12 @@ export function getCurrentMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Fecha local (YYYY-MM-DD). Nunca usar toISOString: es UTC y en zonas
+ *  negativas (ej. Colombia) por la noche devuelve el día siguiente. */
+export function localDateString(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
   result.setMonth(result.getMonth() + months);

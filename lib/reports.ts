@@ -44,6 +44,21 @@ export interface DailyPoint {
   balance: number;
 }
 
+/** Clave de un período de presupuesto: dia → YYYY-MM-DD, semana → lunes de esa semana, mes → YYYY-MM. */
+export function budgetPeriodKey(periodo: BudgetPeriod, fecha: string): string {
+  if (periodo === "dia") return fecha;
+  if (periodo === "semana") return periodRange("week", fecha).start;
+  return fecha.slice(0, 7);
+}
+
+/** Rango de un período de presupuesto sobre una fecha (misma semántica que periodRange). */
+export function budgetPeriodRange(periodo: BudgetPeriod, fecha: string): { start: string; end: string } {
+  const mapped: Period = periodo === "dia" ? "day" : periodo === "semana" ? "week" : "month";
+  return periodRange(mapped, fecha);
+}
+
+export type BudgetPeriod = "dia" | "semana" | "mes";
+
 export function monthKey(dateStr: string): string {
   return dateStr.slice(0, 7);
 }

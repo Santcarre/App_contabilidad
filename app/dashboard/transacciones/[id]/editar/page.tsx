@@ -12,7 +12,7 @@ import CurrencySelect from "@/components/ui/currency-select";
 import { Calendar, DollarSign, ArrowLeft, AlertCircle } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { CategoryIcon } from "@/components/ui/icon-picker";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, localDateString } from "@/lib/utils";
 import { convert, getLatestRate } from "@/lib/currency";
 import { useRates } from "@/hooks/use-config";
 import { useCategories } from "@/hooks/use-categories";
@@ -44,7 +44,7 @@ export default function EditarTransaccionPage() {
 
   const currencyBase = ratesData?.baseCurrency ?? "COP";
   const currencyOptions = [...new Set([currencyBase, ...(ratesData?.currencies ?? ["USD", "EUR"])])];
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateString();
   const amountNum = parseMoneyInput(formData.amount);
   const rate =
     formData.currency !== currencyBase && ratesData

@@ -62,10 +62,13 @@ describe("categorySchema / sourceSchema", () => {
 });
 
 describe("budgetSchema", () => {
-  it("valida mes YYYY-MM y límite positivo", () => {
-    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, month: "2026-08" }).success).toBe(true);
-    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 0, month: "2026-08" }).success).toBe(false);
-    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, month: "08-2026" }).success).toBe(false);
+  it("valida periodo y fecha, y límite positivo", () => {
+    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, periodo: "mes", fecha: "2026-08-15" }).success).toBe(true);
+    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, periodo: "dia", fecha: "2026-08-15" }).success).toBe(true);
+    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, periodo: "semana", fecha: "2026-08-15" }).success).toBe(true);
+    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 0, periodo: "mes", fecha: "2026-08-15" }).success).toBe(false);
+    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, periodo: "mes", fecha: "15-08-2026" }).success).toBe(false);
+    expect(budgetSchema.safeParse({ categoryId: uuid, limitAmount: 500000, periodo: "año", fecha: "2026-08-15" }).success).toBe(false);
   });
 });
 
@@ -96,7 +99,7 @@ describe("recurringSchema", () => {
       expect(res.data.budgetStrictMode).toBe(false);
       expect(res.data.dateFormat).toBe("DD/MM/YYYY");
     }
-    const budget = budgetSchema.safeParse({ categoryId: uuid, limitAmount: 100, month: "2026-08" });
+    const budget = budgetSchema.safeParse({ categoryId: uuid, limitAmount: 100, periodo: "dia", fecha: "2026-08-15" });
     expect(budget.success).toBe(true);
     if (budget.success) {
       expect(budget.data.alert80).toBe(true);

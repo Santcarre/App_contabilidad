@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { RefreshCw } from "lucide-react";
 import { SUPPORTED_CURRENCIES, getCurrencyInfo, getTodayRate, formatCurrency, rateForTarget } from "@/lib/currency";
+import { localDateString } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 import {
   useConfig,
@@ -42,14 +43,14 @@ export default function ConfiguracionPage() {
 
   useEffect(() => {
     if (!ratesData || !updateRatesNow.isIdle) return;
-    const today = new Date().toISOString().split("T")[0];
+    const today = localDateString();
     const missing = ratesData.currencies.some(
       (c) => !ratesData.rates.some((r) => r.targetCurrency === c && r.date === today)
     );
     if (missing) updateRatesNow.mutate();
   }, [ratesData, updateRatesNow]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateString();
 
   // Las tasas guardadas son "COP por 1 unidad de X"; para mostrarlas en la
   // moneda base actual se usa la base como puente (1 USD en EUR =
