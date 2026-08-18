@@ -2,13 +2,9 @@ import { getSpreadsheetId, getAccessToken } from "@/lib/get-spreadsheet-id";
 import { SheetsClient } from "@/lib/google-sheets";
 import { budgetSchema } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
+import { localDateString } from "@/lib/utils";
 import { convertAmountToBase, parseStoredRate, type RateRow } from "@/lib/currency";
 import { budgetPeriodKey, budgetPeriodRange, type BudgetPeriod } from "@/lib/reports";
-
-async function getBudgets(sheets: SheetsClient): Promise<any[]> {
-  const res = await sheets.getRows("Presupuestos!A:I");
-  return getBudgetsFromRows(res);
-}
 
 function getBudgetsFromRows(res: any[][]): any[] {
   return res.slice(1).filter((r) => r[0]).map((row) => ({
@@ -17,6 +13,26 @@ function getBudgetsFromRows(res: any[][]): any[] {
     currencyBase: row[7] || "COP",
     periodo: (row[8] as BudgetPeriod) || "mes",
   }));
+}
+
+// El values.append de Google Sheets escribió presupuestos en las columnas
+// I..Q (en vez de A..I) cuando el encabezado tenía la columna Periodo recién
+// agregada. Detecta esas filas (A vacío pero id en la columna I) y las
+// desplaza a A..I. Es idempotente.
+async function migrateBudgetLayout(sheets: SheetsClient): Promise<void> {
+  const res = await sheets.getRows("Presupuestos!A1:Q100");
+  const moves: { row: number; values: any[] }[] = [];
+  for (let i = 1; i < res.length; i++) {
+    const row = res[i];
+    if (!row[0] && row[8]) {
+      moves.push({ row: i + 1, values: row.slice(8, 17) });
+    }
+  }
+  if (moves.length === 0) return;
+  await sheets.batchUpdate([
+    ...moves.map((m) => ({ range: `Presupuestos!A${m.row}:I${m.row}`, values: [m.values] })),
+    ...moves.map((m) => ({ range: `Presupuestos!J${m.row}:Q${m.row}`, values: [[...Array(8).fill("")]] })),
+  ]);
 }
 
 async function getCategories(sheets: SheetsClient): Promise<any[]> {
@@ -61,11 +77,12 @@ export async function GET(request: NextRequest) {
     const spreadsheetId = await getSpreadsheetId();
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
+    await migrateBudgetLayout(sheets);
 
     const periodoParam = request.nextUrl.searchParams.get("periodo");
     const fechaParam = request.nextUrl.searchParams.get("fecha");
     const periodo: BudgetPeriod = periodoParam === "dia" || periodoParam === "semana" ? periodoParam : "mes";
-    const fecha = fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam) ? fechaParam : new Date().toISOString().split("T")[0];
+    const fecha = fechaParam && /^\d{4}-\d{2}-\d{2}$/.test(fechaParam) ? fechaParam : localDateString();
     const key = budgetPeriodKey(periodo, fecha);
     const range = budgetPeriodRange(periodo, fecha);
 
@@ -121,8 +138,10 @@ export async function POST(request: NextRequest) {
     const spreadsheetId = await getSpreadsheetId();
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
+    await migrateBudgetLayout(sheets);
 
-    const existing = await getBudgets(sheets);
+    const res = await sheets.getRows("Presupuestos!A:I");
+    const existing = getBudgetsFromRows(res);
     const periodKey = budgetPeriodKey(parsed.data.periodo, parsed.data.fecha);
     if (existing.some((b) => b.categoryId === parsed.data.categoryId && b.periodo === parsed.data.periodo && b.periodKey === periodKey)) {
       return NextResponse.json({ error: "Ya tienes un presupuesto para esta categoría en este período." }, { status: 409 });
@@ -144,7 +163,12 @@ export async function POST(request: NextRequest) {
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await sheets.append("Presupuestos", [id, parsed.data.categoryId, parsed.data.limitAmount, periodKey, parsed.data.alert80, parsed.data.alert100, now, currencyBase, parsed.data.periodo]);
+    // Escritura explícita en la siguiente fila libre (values.append es poco
+    // confiable cuando el encabezado tiene huecos y desplaza las columnas).
+    const nextRow = res.length + 1;
+    await sheets.update(`Presupuestos!A${nextRow}:I${nextRow}`, [[
+      id, parsed.data.categoryId, parsed.data.limitAmount, periodKey, parsed.data.alert80, parsed.data.alert100, now, currencyBase, parsed.data.periodo,
+    ]]);
 
     return NextResponse.json({ success: true, id });
   } catch (error: any) {
@@ -166,6 +190,7 @@ export async function PUT(request: NextRequest) {
     const spreadsheetId = await getSpreadsheetId();
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
+    await migrateBudgetLayout(sheets);
 
     const res = await sheets.getRows("Presupuestos!A:I");
     const rowIndex = res.slice(1).findIndex((r) => r[0] === id);
@@ -200,6 +225,7 @@ export async function DELETE(request: NextRequest) {
     const spreadsheetId = await getSpreadsheetId();
     const accessToken = await getAccessToken();
     const sheets = new SheetsClient(accessToken, spreadsheetId);
+    await migrateBudgetLayout(sheets);
 
     const res = await sheets.getRows("Presupuestos!A:I");
     const rowIndex = res.slice(1).findIndex((r) => r[0] === id);

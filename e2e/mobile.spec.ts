@@ -87,6 +87,18 @@ test.describe("móvil (viewport iPhone)", () => {
       await expectNoHorizontalOverflow(page);
     });
   }
+
+  test("presupuestos: intervalo de semana en columna sin overflow", async ({ page }) => {
+    await loginAs(page);
+    await mockApi(page);
+    await page.goto("/dashboard/presupuestos");
+    await page.getByRole("tab", { name: "Semana" }).tap();
+    const desde = page.getByLabel("Inicio del intervalo de la semana");
+    const hasta = page.getByLabel("Fin del intervalo de la semana");
+    await expect(desde).toBeVisible();
+    await expect(hasta).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
 });
   test("transacciones: tocar cualquier zona de la tarjeta abre el detalle", async ({ page }) => {
     await loginAs(page);

@@ -153,20 +153,20 @@ export default function PresupuestosPage() {
                 />
               )}
               {periodo === "semana" && (
-                <div className="flex items-center gap-1">
+                <div className="flex flex-col items-stretch gap-1 sm:flex-row sm:items-center">
                   <Input
                     type="date"
                     value={semanaDesde}
                     onChange={(e) => e.target.value && setFecha(e.target.value)}
-                    className="w-[150px]"
+                    className="w-full sm:w-[150px]"
                     aria-label="Inicio del intervalo de la semana"
                   />
-                  <span className="text-muted-foreground">–</span>
+                  <span className="hidden text-muted-foreground sm:inline">–</span>
                   <Input
                     type="date"
                     value={semanaHasta}
                     onChange={(e) => e.target.value && setFecha(e.target.value)}
-                    className="w-[150px]"
+                    className="w-full sm:w-[150px]"
                     aria-label="Fin del intervalo de la semana"
                   />
                 </div>
